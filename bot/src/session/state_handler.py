@@ -17,8 +17,14 @@ async def transition(session: Session):
         session.state = bot_enum.State.POMODORO
         await session.auto_shush.shush(session.ctx)
     session.timer.set_time_remaining()
-    alert = f'Starting {session.timer.time_remaining_to_str(singular=True)} {session.state}.'
-    await session.ctx.send(alert)
+    alert = f'{session.timer.time_remaining_to_str(singular=True)}の{session.state}を開始します。'
+    if hasattr(session.ctx, 'send'):  # Context
+        await session.ctx.send(alert)
+    else:  # Interaction
+        if not session.ctx.response.is_done():
+            await session.ctx.response.send_message(alert)
+        else:
+            await session.ctx.followup.send(alert)
     await session.dm.send_dm(alert)
 
 

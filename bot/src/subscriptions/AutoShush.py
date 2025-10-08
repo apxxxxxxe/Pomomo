@@ -15,74 +15,118 @@ class AutoShush(Subscription):
         super().__init__()
         self.all = False
 
+    def _get_author(self, ctx):
+        """Get author from either Context or Interaction"""
+        return getattr(ctx, 'author', None) or getattr(ctx, 'user', None)
+    
+    def _get_guild(self, ctx):
+        """Get guild from either Context or Interaction"""
+        return ctx.guild
+    
+    def _get_channel(self, ctx):
+        """Get channel from either Context or Interaction"""
+        return ctx.channel
+    
+    async def _send_message(self, ctx, message):
+        """Send message via either Context or Interaction"""
+        if hasattr(ctx, 'response') and not ctx.response.is_done():
+            await ctx.response.send_message(message)
+        elif hasattr(ctx, 'followup'):
+            await ctx.followup.send(message)
+        else:
+            await ctx.send(message)
+
+    async def safe_edit_member(self, member, unmute=False):
+        """安全にメンバーの音声状態を編集する"""
+        try:
+            await member.edit(mute=not unmute)
+        except Exception as e:
+            print(f"DEBUG: Failed to edit member {member.display_name}: {e}")
+
     async def shush(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
+        vc = vc_accessor.get_voice_channel(ctx)
+        
+        # ステージチャンネルは非対応
+        is_stage = hasattr(vc, 'type') and vc.type.name == 'stage_voice'
+        if is_stage:
+            await self._send_message(ctx, 'ステージチャンネルではAuto-shushはサポートされていません。')
+            return
+        
         if who == ALL:
             for member in vc_members:
-                await member.edit(deafen=True, mute=True)
+                await self.safe_edit_member(member)
         elif who:
-            await who.edit(deafen=True, mute=True)
+            await self.safe_edit_member(who)
         elif self.all:
             for member in vc_members:
-                await member.edit(deafen=True, mute=True)
+                await self.safe_edit_member(member)
         else:
             for member in vc_members:
                 if member in self.subs:
-                    await member.edit(deafen=True, mute=True)
+                    await self.safe_edit_member(member)
 
     async def unshush(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
-        if who == ALL:
+        vc = vc_accessor.get_voice_channel(ctx)
+        
+        # ステージチャンネルは非対応
+        is_stage = hasattr(vc, 'type') and vc.type.name == 'stage_voice'
+        if is_stage:
+            await self._send_message(ctx, 'ステージチャンネルではAuto-shushはサポートされていません。')
+            return
+        
+        if who == ALL or self.all:
             for member in vc_members:
-                await member.edit(deafen=False, mute=False)
+                await self.safe_edit_member(member, unmute=True)
         elif who:
-            await who.edit(deafen=False, mute=False)
-        elif self.all:
-            for member in vc_members:
-                await member.edit(deafen=False, mute=False)
+            await self.safe_edit_member(who, unmute=True)
         else:
             for member in vc_members:
                 if member in self.subs:
-                    await member.edit(deafen=False, mute=False)
+                    await self.safe_edit_member(member, unmute=True)
 
-    async def handle_all(self, ctx: Context):
-        permissions = ctx.author.permissions_in(ctx.channel)
+    async def handle_all(self, ctx):
+        author = self._get_author(ctx)
+        channel = self._get_channel(ctx)
+        permissions = author.permissions_in(channel)
         vc_name = vc_accessor.get_voice_channel(ctx).name
-        if not ((permissions.deafen_members and permissions.mute_members) or permissions.administrator):
-            await ctx.send('You do not have permission to mute and deafen other members.')
+        if not (permissions.mute_members or permissions.administrator):
+            await self._send_message(ctx, 
+                                     '他のメンバーをミュートする権限がありません。')
             return
         if self.all:
             self.all = False
-            await ctx.send(f'Auto-shush has been turned off for the {vc_name} channel.')
+            await self._send_message(ctx, 
+                                     f'{vc_name}チャンネルのAuto-shushをオフにしました。')
             await self.unshush(ctx, ALL)
         else:
             self.all = True
-            await ctx.send(f'Auto-shush has been turned on for the {vc_name} channel.')
+            await self._send_message(ctx, 
+                                     f'{vc_name}チャンネルのAuto-shushをオンにしました。')
             await self.shush(ctx, ALL)
 
-    async def remove_sub(self, ctx: Context):
+    async def remove_sub(self, ctx):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc_name = vc_accessor.get_voice_channel(ctx).name
         if self.all:
-            await ctx.send(f'Auto-shush is already turned on for all members in the {vc_name} channel.')
+            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-shushは既にオンです。')
             return
-        self.subs.remove(ctx.author)
-        await ctx.author.send('You will no longer be automatically deafened and muted'
-                              f' during focus intervals in {ctx.guild.name}\'s {vc_name} channel.\n')
-        if ctx.author in vc_members:
-            await self.unshush(ctx, ctx.author)
+        author = self._get_author(ctx)
+        print(f'Removed {author} from auto-shush subscribers.')
+        self.subs.remove(author)
+        await self._send_message(ctx, f'{author.display_name}のAuto-shush購読を削除しました！')
+        if author in vc_members:
+            await self.unshush(ctx, author)
 
     async def add_sub(self, session, author: User):
         ctx = session.ctx
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc_name = vc_accessor.get_voice_channel(ctx).name
         if self.all:
-            await author.send(f'Auto-shush is already turned on for all members in the {vc_name} channel.')
+            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-shushは既にオンです。')
             return
         self.subs.add(author)
-        await author.send(f'Hey {author.display_name}! You will now be automatically deafened and muted '
-                          f'during focus intervals in {ctx.guild.name}\'s {vc_name} channel.\n'
-                          f'Use command \'{config.CMD_PREFIX}autoshush\' in the text channel the session was '
-                          'started from to turn off auto-shush.')
+        # await self._send_message(ctx, f'Auto-shush subscription added for {author.display_name}!')
         if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and author in vc_members:
             await self.shush(ctx, author)

@@ -21,12 +21,30 @@ async def resume(session: Session):
 
 
 async def start(session: Session):
-    if not await vc_manager.connect(session):
-        return
-    session_manager.activate(session)
-    await session_messenger.send_start_msg(session)
-    await player.alert(session)
-    await resume(session)
+    print("DEBUG: session_controller.start called")
+    try:
+        print("DEBUG: Calling vc_manager.connect")
+        if not await vc_manager.connect(session):
+            print("DEBUG: vc_manager.connect returned False")
+            return
+        print("DEBUG: vc_manager.connect succeeded, activating session")
+        
+        session_manager.activate(session)
+        print("DEBUG: Session activated, sending start message")
+        
+        await session_messenger.send_start_msg(session)
+        print("DEBUG: Start message sent, playing alert")
+        
+        await player.alert(session)
+        print("DEBUG: Alert played, resuming session")
+        
+        await resume(session)
+        print("DEBUG: Session resumed successfully")
+    except Exception as e:
+        print(f"DEBUG: Exception in session_controller.start: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 async def edit(session: Session, new_settings: Settings):
@@ -41,8 +59,6 @@ async def end(session: Session):
     ctx = session.ctx
     await countdown.cleanup_pins(session)
     await session.auto_shush.unshush(ctx)
-    for sub in session.auto_shush.subs.union(session.dm.subs):
-        await sub.send(f'The session in {ctx.guild.name} has ended.')
     if vc_accessor.get_voice_client(ctx):
         await vc_manager.disconnect(session)
     session_manager.deactivate(session)

@@ -2,6 +2,7 @@ import asyncio
 import random
 import time as t
 
+import discord
 from discord import TextChannel
 from discord.ext.commands import Context
 
@@ -27,12 +28,22 @@ async def get_session(ctx: Context) -> Session:
     return session
 
 
+async def get_session_interaction(interaction: discord.Interaction) -> Session:
+    session = active_sessions.get(session_id_from(interaction.channel))
+    return session
+
+
 def session_id_from(tc: TextChannel) -> str:
     return str(tc.guild.id) + str(tc.id)
 
 
 async def kill_if_idle(session: Session):
     ctx = session.ctx
+    
+    # Skip idle check for Interaction-based sessions for now
+    if hasattr(ctx, 'client'):  # This is an Interaction
+        return False
+        
     if not vc_accessor.get_voice_channel(ctx) or\
             len(vc_accessor.get_true_members_in_voice_channel(ctx)) == 0:
         await ctx.invoke(ctx.bot.get_command('stop'))
@@ -42,7 +53,7 @@ async def kill_if_idle(session: Session):
     else:
         def check(reaction, user):
             return reaction.emoji == '👍' and user != ctx.bot.user
-        msg = await ctx.channel.send('Are you still there?')
+        msg = await ctx.channel.send('まだいますか？')
         await msg.add_reaction('👍')
         try:
             await ctx.bot.wait_for('reaction_add', check=check, timeout=60)

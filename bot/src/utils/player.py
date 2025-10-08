@@ -7,18 +7,18 @@ from ..session.Session import Session
 
 
 async def alert(session: Session):
-    vc = session.ctx.voice_client
+    vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
     if not vc:
         return
 
     path = bot_enum.AlertPath.POMO_END
     if session.state == bot_enum.State.COUNTDOWN:
         pass
-    elif session.stats.pomos_completed % session.settings.intervals == 0:
+    elif session.stats.pomos_completed > 0 and session.stats.pomos_completed % session.settings.intervals == 0:
         path = bot_enum.AlertPath.LONG_BREAK_START
     elif session.state != bot_enum.State.POMODORO:
         path = bot_enum.AlertPath.POMO_START
-    source = PCMVolumeTransformer(FFmpegPCMAudio(path, executable='../sounds/ffmpeg.exe'),
+    source = PCMVolumeTransformer(FFmpegPCMAudio(path, executable='ffmpeg'),
                                   volume=0.1)
     if vc.is_playing():
         vc.stop()

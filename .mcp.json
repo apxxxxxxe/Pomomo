@@ -1,0 +1,19 @@
+{
+	"mcpServers": {
+		"serena": {
+			"command": "uvx",
+			"args": [
+				"--from",
+				"git+https://github.com/oraios/serena",
+				"serena",
+				"start-mcp-server"
+			]
+		},
+		"gemini-cli": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["@choplin/mcp-gemini-cli", "--allow-npx"],
+			"env": {}
+		}
+	}
+}

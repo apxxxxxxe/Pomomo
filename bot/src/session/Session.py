@@ -9,7 +9,7 @@ from ..subscriptions.Subscription import Subscription
 
 class Session:
 
-    def __init__(self, state: str, settings: Settings, ctx: Context):
+    def __init__(self, state: str, settings: Settings, ctx):
 
         self.state = state
         self.settings = settings

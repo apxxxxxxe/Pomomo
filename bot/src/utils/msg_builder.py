@@ -7,15 +7,15 @@ from ..session.Session import Session
 
 def settings_embed(session: Session) -> Embed:
     settings = session.settings
-    settings_str = f'Pomodoro: {settings.duration} min\n' \
-               f'Short break: {settings.short_break} min\n' \
-               f'Long break: {settings.long_break} min\n' \
-               f'Intervals: {settings.intervals}'
-    embed = Embed(title='Session settings', description=settings_str, colour=Colour.orange())
+    settings_str = f'作業時間: {settings.duration} 分\n' \
+               f'短い休憩: {settings.short_break} 分\n' \
+               f'長い休憩: {settings.long_break} 分\n' \
+               f'インターバル: {settings.intervals}  ({settings.intervals} 回目の作業後に長い休憩)'
+    embed = Embed(title='作業セッション設定', description=settings_str, colour=Colour.orange())
 
-    vc = session.ctx.voice_client
+    vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
     if vc:
-        footer = f'Connected to {vc.channel.name} voice channel'
+        footer = f'{vc.channel.name} ボイスチャンネルに接続中'
         if session.auto_shush.all:
             footer += '\nAuto-shush is on'
         embed.set_footer(text=footer)
@@ -25,7 +25,7 @@ def settings_embed(session: Session) -> Embed:
 
 def help_embed(for_command) -> Embed:
     if for_command == '':
-        embed = Embed(title='Help menu', description=help_info.SUMMARY, colour=Colour.blue())
+        embed = Embed(title='ヘルプメニュー', description=help_info.SUMMARY, colour=Colour.blue())
         for cmds_key, cmds_dict in help_info.COMMANDS.items():
             values = ''
             for value in cmds_dict.values():
@@ -40,6 +40,7 @@ def help_embed(for_command) -> Embed:
             cmd_info = cmds_dict.get(for_command)
             if cmd_info:
                 return Embed(title=cmd_info[0], description=cmd_info[1], colour=Colour.blue())
+        return Embed(title='Error', description='No help found for that command.', colour=Colour.red())
 
 
 def stats_msg(stats: Stats):

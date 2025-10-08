@@ -1,6 +1,8 @@
 from random import choice
 
+import discord
 from discord.ext import commands
+from discord import app_commands
 
 from src.session import session_manager
 from src.utils import msg_builder
@@ -12,48 +14,27 @@ class Info(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.command()
-    async def help(self, ctx, command=''):
+    @app_commands.command(name="help", description="Get help information")
+    @app_commands.describe(command="ヘルプを表示するコマンド名（省略可）")
+    async def help(self, interaction: discord.Interaction, command: str = ''):
         help_embed = msg_builder.help_embed(command)
         if help_embed:
-            await ctx.send(embed=help_embed)
+            await interaction.response.send_message(embed=help_embed)
         else:
-            await ctx.send('Enter a valid command.')
+            await interaction.response.send_message('有効なコマンドを入力してください。')
 
-    @commands.command()
-    async def time(self, ctx):
-        session = await session_manager.get_session(ctx)
+    @app_commands.command(name="time", description="Show remaining time in current session")
+    async def time(self, interaction: discord.Interaction):
+        session = await session_manager.get_session_interaction(interaction)
         if session:
-            await ctx.send(f'{session.timer.time_remaining_to_str()} remaining on {session.state}!')
+            await interaction.response.send_message(f'{session.state}の残り時間：{session.timer.time_remaining_to_str()}！')
+        else:
+            await interaction.response.send_message('アクティブなセッションがありません。')
 
-    @commands.command()
-    async def settings(self, ctx):
-        session = await session_manager.get_session(ctx)
-        if session:
-            if session.state == bot_enum.State.COUNTDOWN:
-                await ctx.send('Countdowns do not have settings.')
-            else:
-                await ctx.send(embed=msg_builder.settings_embed(session))
-
-    @commands.command()
-    async def stats(self, ctx):
-        session = await session_manager.get_session(ctx)
-        if session:
-            if session.state == bot_enum.State.COUNTDOWN:
-                await ctx.send('Countdowns do not have stats.')
-            else:
-                stats = session.stats
-                if stats.pomos_completed > 0:
-                    await ctx.send(f'You\'ve completed {msg_builder.stats_msg(stats)} so far. ' +
-                                   choice(u_msg.ENCOURAGEMENTS))
-                else:
-                    await ctx.send('You haven\'t completed any pomodoros yet.')
-
-    @commands.command()
-    async def servers(self, ctx):
-        await ctx.send(f'Pomomo is in {len(self.client.guilds)} servers '
-                       f'with {len(session_manager.active_sessions)} active sessions!')
+    @app_commands.command(name="servers", description="Show server information")
+    async def servers(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'Pomomoは{len(self.client.guilds)}のサーバーの {len(session_manager.active_sessions)}個のアクティブセッションで稼働中です！')
 
 
-def setup(client):
-    client.add_cog(Info(client))
+async def setup(client):
+    await client.add_cog(Info(client))

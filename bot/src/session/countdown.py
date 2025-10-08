@@ -22,7 +22,7 @@ async def handle_connection(session: Session, audio_alert: str):
 
 async def cleanup_pins(session: Session):
     for pinned_msg in await session.ctx.channel.pins():
-        if session.bot_start_msg and pinned_msg != session.bot_start_msg and pinned_msg.author == session.ctx.bot.user:
+        if session.bot_start_msg and pinned_msg != session.bot_start_msg and pinned_msg.author == (session.ctx.client if hasattr(session.ctx, 'client') else session.ctx.bot).user:
             embed = pinned_msg.embeds[0]
             embed.colour = Colour.red()
             await pinned_msg.unpin()

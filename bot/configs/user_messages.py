@@ -1,27 +1,27 @@
 from . import config
 
-NO_ACTIVE_SESSION_ERR = 'No active session.\n' \
-                        f'Use command \'{config.CMD_PREFIX}start [pomodoro] [short_break] [long_break] [intervals]\'.'
+NO_ACTIVE_SESSION_ERR = 'アクティブなセッションがありません。\n' \
+                        f'コマンド \'{config.CMD_PREFIX}start [pomodoro] [short_break] [long_break] [intervals]\' を使用してください。'
 
-ACTIVE_SESSION_EXISTS_ERR = 'There is already an active session on the server.\n'
+ACTIVE_SESSION_EXISTS_ERR = 'サーバーに既にアクティブなセッションが存在します。\n'
 
-NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR = f'Use durations between 1 and {config.MAX_INTERVAL_MINUTES} minutes.'
+NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR = f'1分から{config.MAX_INTERVAL_MINUTES}分の間で時間を設定してください。'
 
-NUM_OUTSIDE_ONE_AND_SIXTY_ERR = 'Duration must be between 1 and 60 minutes.'
+NUM_OUTSIDE_ONE_AND_SIXTY_ERR = '時間は1分から60分の間で設定してください。'
 
-MISSING_ARG_ERR = 'Pass in at least one number.'
+MISSING_ARG_ERR = '少なくとも1つの数字を入力してください。'
 
-GREETINGS = ['Howdy howdy! Let\'s do this thang.',
-             'Hey there! Let\'s get started!',
-             'It\'s productivity o\'clock!',
-             'Let\'s ketchup on some work!']
+GREETINGS = ['やあやあ！始めましょう！',
+             'こんにちは！さあ始めましょう！',
+             '生産性の時間です！',
+             '作業を始めましょう！']
 
-ENCOURAGEMENTS = ['Let\'s keep it going!',
-                  'Keep up the good work!',
-                  'That\'s what I\'m talking about!',
-                  'You got this!',
-                  'You\'re doing amazing!']
+ENCOURAGEMENTS = ['続けていきましょう！',
+                  '良い調子です！',
+                  'その調子です！',
+                  'できています！',
+                  'すばらしいです！']
 
-STILL_THERE = ['Phew...I was getting nervous 😅',
-               'Gotcha! Just checking 😊',
-               'Cool beans!']
+STILL_THERE = ['ふぅ...心配になってきました😅',
+               'そうですね！ちょっと確認でした😊',
+               'クールです！']
