@@ -9,7 +9,7 @@ from .Subscription import Subscription
 ALL = "all"
 
 
-class AutoShush(Subscription):
+class AutoMute(Subscription):
 
     def __init__(self):
         super().__init__()
@@ -43,14 +43,14 @@ class AutoShush(Subscription):
         except Exception as e:
             print(f"DEBUG: Failed to edit member {member.display_name}: {e}")
 
-    async def shush(self, ctx: Context, who=None):
+    async def mute(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc = vc_accessor.get_voice_channel(ctx)
         
         # ステージチャンネルは非対応
         is_stage = hasattr(vc, 'type') and vc.type.name == 'stage_voice'
         if is_stage:
-            await self._send_message(ctx, 'ステージチャンネルではAuto-shushはサポートされていません。')
+            await self._send_message(ctx, 'ステージチャンネルではAuto-muteはサポートされていません。')
             return
         
         if who == ALL:
@@ -66,14 +66,14 @@ class AutoShush(Subscription):
                 if member in self.subs:
                     await self.safe_edit_member(member)
 
-    async def unshush(self, ctx: Context, who=None):
+    async def unmute(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc = vc_accessor.get_voice_channel(ctx)
         
         # ステージチャンネルは非対応
         is_stage = hasattr(vc, 'type') and vc.type.name == 'stage_voice'
         if is_stage:
-            await self._send_message(ctx, 'ステージチャンネルではAuto-shushはサポートされていません。')
+            await self._send_message(ctx, 'ステージチャンネルではAuto-muteはサポートされていません。')
             return
         
         if who == ALL or self.all:
@@ -98,35 +98,35 @@ class AutoShush(Subscription):
         if self.all:
             self.all = False
             await self._send_message(ctx, 
-                                     f'{vc_name}チャンネルのAuto-shushをオフにしました。')
-            await self.unshush(ctx, ALL)
+                                     f'{vc_name}チャンネルのAuto-muteをオフにしました。')
+            await self.unmute(ctx, ALL)
         else:
             self.all = True
             await self._send_message(ctx, 
-                                     f'{vc_name}チャンネルのAuto-shushをオンにしました。')
-            await self.shush(ctx, ALL)
+                                     f'{vc_name}チャンネルのAuto-muteをオンにしました。')
+            await self.mute(ctx, ALL)
 
     async def remove_sub(self, ctx):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc_name = vc_accessor.get_voice_channel(ctx).name
         if self.all:
-            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-shushは既にオンです。')
+            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
             return
         author = self._get_author(ctx)
-        print(f'Removed {author} from auto-shush subscribers.')
+        print(f'Removed {author} from auto-mute subscribers.')
         self.subs.remove(author)
-        await self._send_message(ctx, f'{author.display_name}のAuto-shush購読を削除しました！')
+        await self._send_message(ctx, f'{author.display_name}のAuto-mute購読を削除しました！')
         if author in vc_members:
-            await self.unshush(ctx, author)
+            await self.unmute(ctx, author)
 
     async def add_sub(self, session, author: User):
         ctx = session.ctx
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc_name = vc_accessor.get_voice_channel(ctx).name
         if self.all:
-            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-shushは既にオンです。')
+            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
             return
         self.subs.add(author)
-        # await self._send_message(ctx, f'Auto-shush subscription added for {author.display_name}!')
+        # await self._send_message(ctx, f'Auto-mute subscription added for {author.display_name}!')
         if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and author in vc_members:
-            await self.shush(ctx, author)
+            await self.mute(ctx, author)

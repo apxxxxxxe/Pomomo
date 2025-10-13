@@ -39,7 +39,7 @@ async def update_msg(session: Session):
     if timer.remaining < 0:
         embed.colour = Colour.red()
         embed.description = 'DONE!'
-        await session.auto_shush.unshush(session.ctx)
+        await session.auto_mute.unmute(session.ctx)
         await countdown_msg.edit(embed=embed)
         await session.dm.send_dm(embed=embed)
         await player.alert(session)

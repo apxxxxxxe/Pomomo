@@ -16,8 +16,8 @@ def settings_embed(session: Session) -> Embed:
     vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
     if vc:
         footer = f'{vc.channel.name} ボイスチャンネルに接続中'
-        if session.auto_shush.all:
-            footer += '\nAuto-shush is on'
+        if session.auto_mute.all:
+            footer += '\nAuto-mute is on'
         embed.set_footer(text=footer)
 
     return embed

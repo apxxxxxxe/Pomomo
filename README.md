@@ -101,10 +101,10 @@ italiano
 >**dm**\
 >Toggle subscription to get DM alerts for the server's session
 
->**autoshush <me|all> \[mute_only]**\
+>**automute <me|all> \[mute_only]**\
 >Toggle subscription to get automatically deafened and muted during pomodoro intervals.\
 > Optionally add the \"mute_only\" parameter if you do not want to be deafened during focus intervals.
->Only members with mute and deafen permissions can use "all" to autoshush everyone in the pomodoro voice channel.
+>Only members with mute and deafen permissions can use "all" to automute everyone in the pomodoro voice channel.
 
 ### Footnotes
 

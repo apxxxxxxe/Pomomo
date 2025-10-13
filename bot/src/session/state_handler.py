@@ -15,7 +15,7 @@ async def transition(session: Session):
             session.state = bot_enum.State.SHORT_BREAK
     else:
         session.state = bot_enum.State.POMODORO
-        await session.auto_shush.shush(session.ctx)
+        await session.auto_mute.mute(session.ctx)
     session.timer.set_time_remaining()
     alert = f'{session.timer.time_remaining_to_str(singular=True)}の{session.state}を開始します。'
     if hasattr(session.ctx, 'send'):  # Context
@@ -28,8 +28,8 @@ async def transition(session: Session):
     await session.dm.send_dm(alert)
 
 
-async def auto_shush(session: Session):
+async def auto_mute(session: Session):
     if session.state in [bot_enum.State.COUNTDOWN, bot_enum.State.POMODORO]:
-        await session.auto_shush.shush(session.ctx)
+        await session.auto_mute.mute(session.ctx)
     else:
-        await session.auto_shush.unshush(session.ctx)
+        await session.auto_mute.unmute(session.ctx)

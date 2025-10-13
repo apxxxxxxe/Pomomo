@@ -34,13 +34,13 @@ COMMANDS = {'コントロールコマンド': {'start': ['start [pomodoro] [shor
                               'settings': ['settings', 'セッション設定を取得'],
                               'servers': ['servers', 'Pomomoを使用しているサーバー数を確認']},
             'サブスクリプションコマンド': {'dm': ['dm', 'サーバーのセッションのDMアラート購読を切り替え'],
-                                      'enableautoshush': ['enableautoshush [all]', 'ポモドーロインターバル中に自動的に'
+                                      'enableautomute': ['enableautomute [all]', 'ポモドーロインターバル中に自動的に'
                                                                           'スピーカーとマイクをオフにする機能を有効にします。\n'
                                                                           'ミュートとスピーカーオフの権限を持つメンバーは'
                                                                           '"all"パラメータを追加してポモドーロ音声チャンネルの'
-                                                                          '全員をauto_shush有効にできます。'],
-                                     'disableautoshush': ['disableautoshush [all]', 'ポモドーロインターバル中に自動的に'
+                                                                          '全員をauto_mute有効にできます。'],
+                                     'disableautomute': ['disableautomute [all]', 'ポモドーロインターバル中に自動的に'
                                                                            'スピーカーとマイクをオフにする機能を無効にします。\n'
                                                                            'ミュートとスピーカーオフの権限を持つメンバーは'
                                                                            '"all"パラメータを追加してポモドーロ音声チャンネルの'
-                                                                           '全員をauto_shush無効にできます。']}}
+                                                                           '全員をauto_mute無効にできます。']}}

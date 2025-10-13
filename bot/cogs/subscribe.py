@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands, HTTPException
 
 from src.session import session_manager
-from src.subscriptions import AutoShush
+from src.subscriptions import AutoMute
 from src.voice_client import vc_accessor as vc_accessor, vc_manager as vc_manager
 from configs import bot_enum
 
@@ -13,51 +13,51 @@ class Subscribe(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @app_commands.command(name="enableautoshush", description="Enable auto-shush functionality")
+    @app_commands.command(name="enableautomute", description="Enable auto-mute functionality")
     @app_commands.describe(who="自動ミュート対象: 'all'で全員、空欄で自分のみ")
-    async def enableautoshush(self, interaction: discord.Interaction, who: str = ''):
+    async def enableautomute(self, interaction: discord.Interaction, who: str = ''):
         session = await session_manager.get_session_interaction(interaction)
         if session:
             if not vc_accessor.get_voice_channel_interaction(interaction):
-                await interaction.response.send_message('auto-shushを使用するにはPomomoが音声チャンネルにいる必要があります。')
+                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。')
                 return
-            auto_shush = session.auto_shush
-            if who.lower() == AutoShush.ALL:
-                if not auto_shush.all:
-                    await auto_shush.handle_all(interaction)
-                    await interaction.response.send_message('通話参加者全員のautoshushをオンにしました')
+            auto_mute = session.auto_mute
+            if who.lower() == AutoMute.ALL:
+                if not auto_mute.all:
+                    await auto_mute.handle_all(interaction)
+                    await interaction.response.send_message('通話参加者全員のautomuteをオンにしました')
                 else:
-                    await interaction.response.send_message('通話参加者全員のautoshushは既にオンです')
+                    await interaction.response.send_message('通話参加者全員のautomuteは既にオンです')
             else:
-                if interaction.user not in auto_shush.subs:
-                    await auto_shush.add_sub(session, interaction.user)
-                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushをオンにしました')
+                if interaction.user not in auto_mute.subs:
+                    await auto_mute.add_sub(session, interaction.user)
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautomuteをオンにしました')
                 else:
-                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushは既にオンです')
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautomuteは既にオンです')
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
-    @app_commands.command(name="disableautoshush", description="Disable auto-shush functionality")
+    @app_commands.command(name="disableautomute", description="Disable auto-mute functionality")
     @app_commands.describe(who="自動ミュート解除対象: 'all'で全員、空欄で自分のみ")
-    async def disableautoshush(self, interaction: discord.Interaction, who: str = ''):
+    async def disableautomute(self, interaction: discord.Interaction, who: str = ''):
         session = await session_manager.get_session_interaction(interaction)
         if session:
             if not vc_accessor.get_voice_channel_interaction(interaction):
-                await interaction.response.send_message('auto-shushを使用するにはPomomoが音声チャンネルにいる必要があります。')
+                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。')
                 return
-            auto_shush = session.auto_shush
-            if who.lower() == AutoShush.ALL:
-                if auto_shush.all:
-                    await auto_shush.handle_all(interaction)
-                    await interaction.response.send_message('通話参加者全員のautoshushをオフにしました')
+            auto_mute = session.auto_mute
+            if who.lower() == AutoMute.ALL:
+                if auto_mute.all:
+                    await auto_mute.handle_all(interaction)
+                    await interaction.response.send_message('通話参加者全員のautomuteをオフにしました')
                 else:
-                    await interaction.response.send_message('通話参加者全員のautoshushは既にオフです')
+                    await interaction.response.send_message('通話参加者全員のautomuteは既にオフです')
             else:
-                if interaction.user in auto_shush.subs:
-                    await auto_shush.remove_sub(interaction)
-                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushをオフにしました')
+                if interaction.user in auto_mute.subs:
+                    await auto_mute.remove_sub(interaction)
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautomuteをオフにしました')
                 else:
-                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushは既にオフです')
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautomuteは既にオフです')
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
@@ -79,8 +79,8 @@ class Subscribe(commands.Cog):
             print(f'{member.display_name} left the channel {before.channel.name}.')
             session = vc_manager.get_connected_session(before.channel)
             if session:
-                auto_shush = session.auto_shush
-                if member in auto_shush.subs or auto_shush.all:
+                auto_mute = session.auto_mute
+                if member in auto_mute.subs or auto_mute.all:
                     if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
                             (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client):
                         print(f"unmuting {member.display_name}")
@@ -88,7 +88,7 @@ class Subscribe(commands.Cog):
                             await member.edit(mute=False)
                         except HTTPException as e:
                             if e.text == "Target user is not connected to voice.":
-                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　サーバミュートが解除できていません。\n一度ボイスチャンネルに再接続して `/enableautoshush` または `/disableautoshush` コマンドを実行してください。")
+                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　サーバミュートが解除できていません。\n一度ボイスチャンネルに再接続して `/enableautomute` または `/disableautomute` コマンドを実行してください。")
                             else:
                                 print(e.text)
 
@@ -97,12 +97,12 @@ class Subscribe(commands.Cog):
             print(f'{member.display_name} joined the channel {after.channel.name}.')
             session = vc_manager.get_connected_session(after.channel)
             if session:
-                auto_shush = session.auto_shush
-                if member in auto_shush.subs or auto_shush.all:
+                auto_mute = session.auto_mute
+                if member in auto_mute.subs or auto_mute.all:
                     if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
                             (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and not (member.voice.mute):
                         print(f"muting {member.display_name}")
-                        await auto_shush.safe_edit_member(member, unmute=False)
+                        await auto_mute.safe_edit_member(member, unmute=False)
         
 async def setup(client):
     await client.add_cog(Subscribe(client))

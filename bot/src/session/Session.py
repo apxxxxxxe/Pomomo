@@ -3,7 +3,7 @@ from discord.ext.commands import Context
 from ..Settings import Settings
 from ..Stats import Stats
 from ..Timer import Timer
-from ..subscriptions.AutoShush import AutoShush
+from ..subscriptions.AutoMute import AutoMute
 from ..subscriptions.Subscription import Subscription
 
 
@@ -22,4 +22,4 @@ class Session:
 
         # Subscriptions
         self.dm = Subscription()
-        self.auto_shush = AutoShush()
+        self.auto_mute = AutoMute()

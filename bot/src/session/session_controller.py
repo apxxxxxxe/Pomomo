@@ -11,7 +11,7 @@ from configs import config, bot_enum
 
 async def resume(session: Session):
     session.timeout = t.time() + config.TIMEOUT_SECONDS
-    await state_handler.auto_shush(session)
+    await state_handler.auto_mute(session)
     if session.state == bot_enum.State.COUNTDOWN:
         await countdown.start(session)
         return
@@ -58,7 +58,7 @@ async def edit(session: Session, new_settings: Settings):
 async def end(session: Session):
     ctx = session.ctx
     await countdown.cleanup_pins(session)
-    await session.auto_shush.unshush(ctx)
+    await session.auto_mute.unmute(ctx)
     if vc_accessor.get_voice_client(ctx):
         await vc_manager.disconnect(session)
     session_manager.deactivate(session)
@@ -77,7 +77,7 @@ async def run_interval(session: Session) -> bool:
         if await session_manager.kill_if_idle(session):
             return False
         if session.state == bot_enum.State.POMODORO:
-            await session.auto_shush.unshush(session.ctx)
+            await session.auto_mute.unmute(session.ctx)
         await player.alert(session)
         await state_handler.transition(session)
     return True
