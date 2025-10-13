@@ -13,9 +13,9 @@ class Subscribe(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @app_commands.command(name="autoshush", description="Toggle auto-shush functionality")
+    @app_commands.command(name="enableautoshush", description="Enable auto-shush functionality")
     @app_commands.describe(who="自動ミュート対象: 'all'で全員、空欄で自分のみ")
-    async def autoshush(self, interaction: discord.Interaction, who: str = ''):
+    async def enableautoshush(self, interaction: discord.Interaction, who: str = ''):
         session = await session_manager.get_session_interaction(interaction)
         if session:
             if not vc_accessor.get_voice_channel_interaction(interaction):
@@ -23,17 +23,41 @@ class Subscribe(commands.Cog):
                 return
             auto_shush = session.auto_shush
             if who.lower() == AutoShush.ALL:
-                await auto_shush.handle_all(interaction)
-                if auto_shush.all:
-                   await interaction.response.send_message('通話参加者全員のautoshushをオンにしました')
+                if not auto_shush.all:
+                    await auto_shush.handle_all(interaction)
+                    await interaction.response.send_message('通話参加者全員のautoshushをオンにしました')
                 else:
-                   await interaction.response.send_message('通話参加者全員のautoshushをオフにしました')
-            elif interaction.user in auto_shush.subs:
-                await auto_shush.remove_sub(interaction)
-                await interaction.response.send_message(who or interaction.user.name + ' のautoshushをオフにしました')
+                    await interaction.response.send_message('通話参加者全員のautoshushは既にオンです')
             else:
-                await auto_shush.add_sub(session, interaction.user)
-                await interaction.response.send_message(who or interaction.user.name + ' のautoshushをオンにしました')
+                if interaction.user not in auto_shush.subs:
+                    await auto_shush.add_sub(session, interaction.user)
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushをオンにしました')
+                else:
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushは既にオンです')
+        else:
+            await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
+
+    @app_commands.command(name="disableautoshush", description="Disable auto-shush functionality")
+    @app_commands.describe(who="自動ミュート解除対象: 'all'で全員、空欄で自分のみ")
+    async def disableautoshush(self, interaction: discord.Interaction, who: str = ''):
+        session = await session_manager.get_session_interaction(interaction)
+        if session:
+            if not vc_accessor.get_voice_channel_interaction(interaction):
+                await interaction.response.send_message('auto-shushを使用するにはPomomoが音声チャンネルにいる必要があります。')
+                return
+            auto_shush = session.auto_shush
+            if who.lower() == AutoShush.ALL:
+                if auto_shush.all:
+                    await auto_shush.handle_all(interaction)
+                    await interaction.response.send_message('通話参加者全員のautoshushをオフにしました')
+                else:
+                    await interaction.response.send_message('通話参加者全員のautoshushは既にオフです')
+            else:
+                if interaction.user in auto_shush.subs:
+                    await auto_shush.remove_sub(interaction)
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushをオフにしました')
+                else:
+                    await interaction.response.send_message((who or interaction.user.name) + ' のautoshushは既にオフです')
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
@@ -64,7 +88,7 @@ class Subscribe(commands.Cog):
                             await member.edit(mute=False)
                         except HTTPException as e:
                             if e.text == "Target user is not connected to voice.":
-                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　サーバミュートが解除できていません。\n一度ボイスチャンネルに再接続して `/autoshush` コマンドを実行してください。")
+                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　サーバミュートが解除できていません。\n一度ボイスチャンネルに再接続して `/enableautoshush` または `/disableautoshush` コマンドを実行してください。")
                             else:
                                 print(e.text)
 
