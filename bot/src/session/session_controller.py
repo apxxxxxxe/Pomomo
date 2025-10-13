@@ -10,7 +10,7 @@ from configs import config, bot_enum
 
 
 async def resume(session: Session):
-    session.timeout = t.time() + config.TIMEOUT_SECONDS
+    session.timeout = int(t.time() + config.TIMEOUT_SECONDS)
     await state_handler.auto_mute(session)
     if session.state == bot_enum.State.COUNTDOWN:
         await countdown.start(session)
@@ -68,10 +68,10 @@ async def run_interval(session: Session) -> bool:
     session.timer.running = True
     timer_end = session.timer.end
     await sleep(session.timer.remaining)
-    session = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx.channel))
-    if not (session and
-            session.timer.running and
-            timer_end == session.timer.end):
+    s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx.channel))
+    if not (s and
+            s.timer.running and
+            timer_end == s.timer.end):
         return False
     else:
         if await session_manager.kill_if_idle(session):

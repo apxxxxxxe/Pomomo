@@ -52,7 +52,9 @@ class AutoMute(Subscription):
     async def mute(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc = vc_accessor.get_voice_channel(ctx)
-        
+        if not vc:
+            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
+            return
         # ステージチャンネルは非対応
         is_stage = hasattr(vc, 'type') and vc.type.name == 'stage_voice'
         if is_stage:
@@ -75,7 +77,9 @@ class AutoMute(Subscription):
     async def unmute(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
         vc = vc_accessor.get_voice_channel(ctx)
-        
+        if not vc:
+            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
+            return
         # ステージチャンネルは非対応
         is_stage = hasattr(vc, 'type') and vc.type.name == 'stage_voice'
         if is_stage:
@@ -119,21 +123,32 @@ class AutoMute(Subscription):
 
     async def remove_sub(self, ctx):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
-        vc_name = vc_accessor.get_voice_channel(ctx).name
+        vc = vc_accessor.get_voice_channel(ctx)
+        if not vc:
+            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
+            return
+        vc_name = vc.name
         if self.all:
             await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
             return
         author = self._get_author(ctx)
+        if not author:
+            await self._send_message(ctx, 'ユーザー情報が取得できません。')
+            return
         print(f'Removed {author} from auto-mute subscribers.')
         self.subs.remove(author)
         await self._send_message(ctx, f'{author.display_name}のAuto-mute購読を削除しました！')
         if author in vc_members:
             await self.unmute(ctx, author)
 
-    async def add_sub(self, session, author: User):
+    async def add_sub(self, session, author: Member | User):
         ctx = session.ctx
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
-        vc_name = vc_accessor.get_voice_channel(ctx).name
+        vc = vc_accessor.get_voice_channel(ctx)
+        if not vc:
+            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
+            return
+        vc_name = vc.name
         if self.all:
             await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
             return

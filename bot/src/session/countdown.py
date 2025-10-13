@@ -11,9 +11,8 @@ from ..utils import player
 
 async def handle_connection(session: Session, audio_alert: str):
     if audio_alert != 'mute':
-        if not vc_accessor.get_voice_channel(session.ctx) and session.ctx.author.voice:
-            if not await vc_manager.connect(session):
-                print('countdown.handle_connection(): Could not connect to voice channel.')
+		# ボイスチャンネルに接続されていない場合、接続を試みる
+        await vc_manager.connect(session)
     else:
         vc = vc_accessor.get_voice_client(session.ctx)
         if vc:
@@ -51,7 +50,7 @@ async def update_msg(session: Session):
 
 async def start(session: Session):
     session.timer.running = True
-    await cleanup_pins(session)
+    # await cleanup_pins(session)
     while True:
         time_remaining = session.timer.remaining
         await sleep(1)
