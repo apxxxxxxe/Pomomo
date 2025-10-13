@@ -1,8 +1,10 @@
 from discord.ext.commands import Context
+from discord.channel import TextChannel, VoiceChannel
 from discord import User, Member
+from typing import Union
 
 from ..voice_client import vc_accessor
-from configs import config, bot_enum
+from configs import bot_enum
 from .Subscription import Subscription
 
 
@@ -15,15 +17,19 @@ class AutoMute(Subscription):
         super().__init__()
         self.all = False
 
-    def _get_author(self, ctx):
+    def _get_author(self, ctx) -> Member | None:
         """Get author from either Context or Interaction"""
-        return getattr(ctx, 'author', None) or getattr(ctx, 'user', None)
+        guild = self._get_guild(ctx)
+        if guild is None:
+            return None
+        m : Member | User = ctx.author if hasattr(ctx, 'author') else ctx.user
+        return guild.get_member(m.id) if m else None
     
     def _get_guild(self, ctx):
         """Get guild from either Context or Interaction"""
         return ctx.guild
     
-    def _get_channel(self, ctx):
+    def _get_channel(self, ctx) -> TextChannel | VoiceChannel | None:
         """Get channel from either Context or Interaction"""
         return ctx.channel
     
@@ -87,23 +93,28 @@ class AutoMute(Subscription):
                     await self.safe_edit_member(member, unmute=True)
 
     async def handle_all(self, ctx):
+        print("getting author...")
         author = self._get_author(ctx)
+        print("checking permissions...")
+        if not author:
+            await self._send_message(ctx, 'ユーザー情報が取得できません。')
+            return
         channel = self._get_channel(ctx)
-        permissions = author.permissions_in(channel)
-        vc_name = vc_accessor.get_voice_channel(ctx).name
+        if not channel:
+            await self._send_message(ctx, 'チャンネル情報が取得できません。')
+            return
+        permissions = channel.permissions_for(author)
+        if not permissions:
+            await self._send_message(ctx, '権限情報が取得できません。')
+            return
         if not (permissions.mute_members or permissions.administrator):
-            await self._send_message(ctx, 
-                                     '他のメンバーをミュートする権限がありません。')
+            await self._send_message(ctx, '他のメンバーをミュートする権限がありません。')
             return
         if self.all:
             self.all = False
-            await self._send_message(ctx, 
-                                     f'{vc_name}チャンネルのAuto-muteをオフにしました。')
             await self.unmute(ctx, ALL)
         else:
             self.all = True
-            await self._send_message(ctx, 
-                                     f'{vc_name}チャンネルのAuto-muteをオンにしました。')
             await self.mute(ctx, ALL)
 
     async def remove_sub(self, ctx):
@@ -127,6 +138,5 @@ class AutoMute(Subscription):
             await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
             return
         self.subs.add(author)
-        # await self._send_message(ctx, f'Auto-mute subscription added for {author.display_name}!')
         if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and author in vc_members:
             await self.mute(ctx, author)

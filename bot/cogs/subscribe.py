@@ -26,6 +26,7 @@ class Subscribe(commands.Cog):
                 if not auto_mute.all:
                     await auto_mute.handle_all(interaction)
                     await interaction.response.send_message('通話参加者全員のautomuteをオンにしました')
+                    print("muted all users")
                 else:
                     await interaction.response.send_message('通話参加者全員のautomuteは既にオンです')
             else:
