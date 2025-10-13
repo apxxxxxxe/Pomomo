@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, HTTPException
 
 from src.session import session_manager
 from src.subscriptions import AutoShush
@@ -50,39 +50,35 @@ class Subscribe(commands.Cog):
 
         print(f'Voice state update for {member.display_name}: {before.channel} -> {after.channel}')
             
-        # ユーザーが通話から完全に離脱した場合（before.channel あり、after.channel なし）
-        if before.channel and not after.channel:
+        # 移動前のチャンネルが存在する場合
+        if before.channel:
             print(f'{member.display_name} left the channel {before.channel.name}.')
             session = vc_manager.get_connected_session(before.channel)
             if session:
                 auto_shush = session.auto_shush
-                # autostushをsubscribeしている、またはAllに設定されている場合
-                if member in auto_shush.subs or member in auto_shush.all:
-                    if member.voice.mute:
-                        # ミュートされている場合は解除
-                        await auto_shush.safe_edit_member(member, unmute=True)
-        
-        # ユーザーがチャンネル間を移動した場合
-        elif before.channel and after.channel:
-            before_session = vc_manager.get_connected_session(before.channel)
-            after_session = vc_manager.get_connected_session(after.channel)
-            if before_session:
-                print(f"Handling auto-shush for {member.display_name} leaving {before.channel.name}")
-                auto_shush = before_session.auto_shush
-                # autostushをsubscribeしている、またはAllに設定されている場合
-                if member in auto_shush.subs or member in auto_shush.all:
-                    if member.voice.mute:
-                        # ミュートされている場合は解除
-                        await auto_shush.safe_edit_member(member, unmute=True)
-
-            if after_session:
-                print(f"Handling auto-shush for {member.display_name} joining {after.channel.name}")
-                auto_shush = after_session.auto_shush
                 if member in auto_shush.subs or auto_shush.all:
-                    if after_session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
-                            (getattr(after_session.ctx, 'voice_client', None) or after_session.ctx.guild.voice_client) and not (member.voice.mute):
-                        await auto_shush.shush(after_session.ctx, member)
+                    if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
+                            (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client):
+                        print(f"unmuting {member.display_name}")
+                        try:
+                            await member.edit(mute=False)
+                        except HTTPException as e:
+                            if e.text == "Target user is not connected to voice.":
+                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　サーバミュートが解除できていません。\n一度ボイスチャンネルに再接続して `/autoshush` コマンドを実行してください。")
+                            else:
+                                print(e.text)
 
-
+        # 移動後のチャンネルが存在する場合
+        if after.channel:
+            print(f'{member.display_name} joined the channel {after.channel.name}.')
+            session = vc_manager.get_connected_session(after.channel)
+            if session:
+                auto_shush = session.auto_shush
+                if member in auto_shush.subs or auto_shush.all:
+                    if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
+                            (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and not (member.voice.mute):
+                        print(f"muting {member.display_name}")
+                        await auto_shush.safe_edit_member(member, unmute=False)
+        
 async def setup(client):
     await client.add_cog(Subscribe(client))

@@ -1,5 +1,5 @@
 from discord.ext.commands import Context
-from discord import User
+from discord import User, Member
 
 from ..voice_client import vc_accessor
 from configs import config, bot_enum
@@ -36,7 +36,7 @@ class AutoShush(Subscription):
         else:
             await ctx.send(message)
 
-    async def safe_edit_member(self, member, unmute=False):
+    async def safe_edit_member(self, member: Member, unmute=False):
         """安全にメンバーの音声状態を編集する"""
         try:
             await member.edit(mute=not unmute)
