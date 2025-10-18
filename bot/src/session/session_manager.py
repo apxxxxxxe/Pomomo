@@ -14,27 +14,27 @@ active_sessions = {}
 
 
 def activate(session: Session):
-    active_sessions[session_id_from(session.ctx.channel)] = session
+    active_sessions[session_id_from(session.ctx)] = session
 
 
 def deactivate(session: Session):
-    active_sessions.pop(session_id_from(session.ctx.channel))
+    active_sessions.pop(session_id_from(session.ctx))
 
 
 async def get_session(ctx: Context) -> Session:
-    session = active_sessions.get(session_id_from(ctx.channel))
+    session = active_sessions.get(session_id_from(ctx))
     if not session:
         await ctx.send(u_msg.NO_ACTIVE_SESSION_ERR)
     return session
 
 
 async def get_session_interaction(interaction: discord.Interaction) -> Session:
-    session = active_sessions.get(session_id_from(interaction.channel))
+    session = active_sessions.get(session_id_from(interaction))
     return session
 
 
-def session_id_from(tc: TextChannel) -> str:
-    return str(tc.guild.id) + str(tc.id)
+def session_id_from(ctx) -> str:
+    return str(ctx.guild.id)
 
 
 async def kill_if_idle(session: Session):

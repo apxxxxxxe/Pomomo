@@ -11,7 +11,9 @@ async def connect(session: Session):
     # Handle both Interaction and Context objects
     voice_client = getattr(ctx, 'voice_client', None) or ctx.guild.voice_client
     
-    if voice_client and get_connected_session(voice_client.channel):
+    # Check if there's already an active session in this guild
+    guild_id = str(ctx.guild.id)
+    if guild_id in connected_sessions:
         if hasattr(ctx, 'send'):
             await ctx.send(u_msg.ACTIVE_SESSION_EXISTS_ERR)
         else:
@@ -23,19 +25,18 @@ async def connect(session: Session):
     voice_client = await user_voice.channel.connect()
     await ctx.guild.get_member((ctx.client if hasattr(ctx, 'client') else ctx.bot).user.id).edit(deafen=True)
     if voice_client:
-        connected_sessions[voice_channel_id_from(voice_client.channel)] = session
+        connected_sessions[str(ctx.guild.id)] = session
     return True
 
 
 async def disconnect(session: Session):
-    vc_id = voice_channel_id_from((getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client).channel)
+    guild_id = str(session.ctx.guild.id)
     await (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client).disconnect()
-    connected_sessions.pop(vc_id)
+    connected_sessions.pop(guild_id)
 
 
-def get_connected_session(vc: VoiceChannel) -> Session:
-    return connected_sessions.get(voice_channel_id_from(vc))
+def get_connected_session(guild_id: str) -> Session:
+    return connected_sessions.get(guild_id)
 
 
-def voice_channel_id_from(vc: VoiceChannel) -> str:
-    return str(vc.guild.id) + str(vc.id)
+# Removed: voice_channel_id_from function is no longer needed since we use guild IDs directly

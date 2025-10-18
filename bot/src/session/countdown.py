@@ -54,7 +54,7 @@ async def start(session: Session):
     while True:
         time_remaining = session.timer.remaining
         await sleep(1)
-        session = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx.channel))
+        session = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
         if not (session and
                 session.timer.running and
                 time_remaining == session.timer.remaining):

@@ -68,7 +68,7 @@ async def run_interval(session: Session) -> bool:
     session.timer.running = True
     timer_end = session.timer.end
     await sleep(session.timer.remaining)
-    s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx.channel))
+    s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
     if not (s and
             s.timer.running and
             timer_end == s.timer.end):

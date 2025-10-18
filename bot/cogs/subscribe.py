@@ -78,7 +78,7 @@ class Subscribe(commands.Cog):
         # 移動前のチャンネルが存在する場合
         if before.channel:
             print(f'{member.display_name} left the channel {before.channel.name}.')
-            session = vc_manager.get_connected_session(before.channel)
+            session = vc_manager.get_connected_session(str(before.channel.guild.id))
             if session:
                 auto_mute = session.auto_mute
                 if auto_mute.all:
@@ -96,7 +96,7 @@ class Subscribe(commands.Cog):
         # 移動後のチャンネルが存在する場合
         if after.channel:
             print(f'{member.display_name} joined the channel {after.channel.name}.')
-            session = vc_manager.get_connected_session(after.channel)
+            session = vc_manager.get_connected_session(str(after.channel.guild.id))
             if session:
                 auto_mute = session.auto_mute
                 if auto_mute.all:

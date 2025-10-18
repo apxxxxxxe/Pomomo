@@ -32,7 +32,7 @@ class Control(commands.Cog):
             
         print("DEBUG: Settings validation passed")
         
-        if session_manager.active_sessions.get(session_manager.session_id_from(interaction.channel)):
+        if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
             print("DEBUG: Active session exists")
             await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR)
             return
@@ -132,7 +132,7 @@ class Control(commands.Cog):
         audio_alert="音声アラート設定（省略可）"
     )
     async def countdown(self, interaction: discord.Interaction, duration: int, title: str = 'Countdown', audio_alert: str = None):
-        session = session_manager.active_sessions.get(session_manager.session_id_from(interaction.channel))
+        session = session_manager.active_sessions.get(session_manager.session_id_from(interaction))
         if session:
             await interaction.response.send_message('アクティブなセッションが実行中です。カウントダウンを開始する前に、まず停止してください。')
             return
