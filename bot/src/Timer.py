@@ -31,31 +31,21 @@ class Timer:
 
         if time_remaining >= 3600:
             hours_str = str(int(time_remaining/3600)) + '時間'
-            if time_remaining >= 7200 and not singular:
-                hours_str += 's'
             time_remaining_str = hours_str
             if hi_rez:
                 minutes_str = str(int(time_remaining % 3600 / 60)) + '分'
-                if int(time_remaining % 3600 / 60) != 1 and not singular:
-                    minutes_str += 's'
-                time_remaining_str += ' ' + minutes_str
+                time_remaining_str += minutes_str
             return time_remaining_str
 
         elif time_remaining >= 60:
             minutes_str = str(int(time_remaining/60)) + '分'
-            if time_remaining >= 120 and not singular:
-                minutes_str += 's'
             time_remaining_str = minutes_str
             if hi_rez:
                 seconds_str = str(int(time_remaining % 60)) + '秒'
-                if int(time_remaining % 60) != 1 and not singular:
-                    seconds_str += 's'
-                time_remaining_str += ' ' + seconds_str
+                time_remaining_str += seconds_str
             return time_remaining_str
 
         else:
             seconds_str = str(int(time_remaining)) + '秒'
-            if time_remaining != 1 and not singular:
-                seconds_str += 's'
             time_remaining_str = seconds_str
         return time_remaining_str

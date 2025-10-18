@@ -44,7 +44,7 @@ async def update_msg(session: Session):
         await player.alert(session)
         await session_controller.end(session)
         return
-    embed.description = f'残り{timer.time_remaining_to_str(hi_rez=True)}'
+    embed.description = f'**残り{timer.time_remaining_to_str(hi_rez=True)}**'
     await countdown_msg.edit(embed=embed)
 
 

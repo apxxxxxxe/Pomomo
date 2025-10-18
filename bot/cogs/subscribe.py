@@ -21,11 +21,11 @@ class Subscribe(commands.Cog):
             session_vc = vc_accessor.get_voice_channel(session.ctx)
             tc = interaction.channel
             if session_vc and session_vc.name != tc.name:
-                await interaction.response.send_message(f'/enableautomute コマンドはテキストチャンネル{session_vc.name}で実行してください')
+                await interaction.response.send_message(f'`/enableautomute` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
                 return
 
             if not vc_accessor.get_voice_channel_interaction(interaction):
-                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。')
+                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
             channel_name = vc_accessor.get_voice_channel(session.ctx).name
             auto_mute = session.auto_mute
@@ -34,7 +34,7 @@ class Subscribe(commands.Cog):
                 await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫')
                 print("muted all users")
             else:
-                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオンです')
+                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオンです', ephemeral=True)
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
@@ -46,11 +46,11 @@ class Subscribe(commands.Cog):
             session_vc = vc_accessor.get_voice_channel(session.ctx)
             tc = interaction.channel
             if session_vc and session_vc.name != tc.name:
-                await interaction.response.send_message(f'/disableautomute コマンドはテキストチャンネル{session_vc.name}で実行してください')
+                await interaction.response.send_message(f'`/disableautomute` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
                 return
 
             if not vc_accessor.get_voice_channel_interaction(interaction):
-                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。')
+                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
             channel_name = vc_accessor.get_voice_channel(session.ctx).name
             auto_mute = session.auto_mute
@@ -58,7 +58,7 @@ class Subscribe(commands.Cog):
                 await auto_mute.handle_all(interaction)
                 await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteをオフにしました')
             else:
-                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオフです')
+                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオフです', ephemeral=True)
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
@@ -89,7 +89,7 @@ class Subscribe(commands.Cog):
                             await member.edit(mute=False)
                         except HTTPException as e:
                             if e.text == "Target user is not connected to voice.":
-                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する")
+                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", ephemeral=True)
                             else:
                                 print(e.text)
 
@@ -97,7 +97,8 @@ class Subscribe(commands.Cog):
         if after.channel:
             print(f'{member.display_name} joined the channel {after.channel.name}.')
             session = vc_manager.get_connected_session(str(after.channel.guild.id))
-            if session:
+            session_vc = session.voice_channel
+            if session and session_vc.name == after.channel.name:
                 auto_mute = session.auto_mute
                 if auto_mute.all:
                     if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \

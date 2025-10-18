@@ -34,28 +34,30 @@ class Control(commands.Cog):
         
         if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
             print("DEBUG: Active session exists")
-            await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR)
+            await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
             return
             
         print("DEBUG: No active session found")
         
         if not interaction.user.voice:
             print("DEBUG: User not in voice channel")
-            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください！')
+            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください', ephemeral=True)
             return
 
         # Voice channel validation
         user_vc = interaction.user.voice.channel
         tc = interaction.channel
         if user_vc.name != tc.name:
-            await interaction.response.send_message(f'/start コマンドはテキストチャンネル{user_vc.name}で実行してください')
+            await interaction.response.send_message(f'`/start` コマンドはテキストチャンネル`{user_vc.name}`で実行してください', ephemeral=True)
             return
             
         print("DEBUG: User in voice channel, creating session")
 
         session = Session(bot_enum.State.POMODORO,
                           Settings(pomodoro, short_break, long_break, intervals),
-                          interaction)
+                          interaction,
+                          user_vc,
+                          )
         print("DEBUG: Session created, starting session controller")
         await session_controller.start(session)
 
@@ -86,7 +88,7 @@ class Control(commands.Cog):
             session_vc = vc_accessor.get_voice_channel(session.ctx)
             tc = interaction.channel
             if session_vc and session_vc.name != tc.name:
-                await interaction.response.send_message(f'/stop コマンドはテキストチャンネル{session_vc.name}で実行してください')
+                await interaction.response.send_message(f'`/stop` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
                 return
 
             if session.stats.pomos_completed > 0:
@@ -95,7 +97,7 @@ class Control(commands.Cog):
                 await interaction.response.send_message(f'またお会いしましょう！ 👋')
             await session_controller.end(session)
         else:
-            await interaction.response.send_message('停止するアクティブなセッションがありません。')
+            await interaction.response.send_message('停止するアクティブなセッションがありません。', ephemeral=True)
 
     @app_commands.command(name="skip", description="Skip the current interval")
     async def skip(self, interaction: discord.Interaction):
@@ -106,11 +108,11 @@ class Control(commands.Cog):
             session_vc = vc_accessor.get_voice_channel(session.ctx)
             tc = interaction.channel
             if session_vc and session_vc.name != tc.name:
-                await interaction.response.send_message(f'/skip コマンドはテキストチャンネル{session_vc.name}で実行してください')
+                await interaction.response.send_message(f'`/skip` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
                 return
 
             if session.state == bot_enum.State.COUNTDOWN:
-                await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには/stopを使用してください。')
+                await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには`/stop`を使用してください。', ephemeral=True)
                 return
                 
             stats = session.stats
@@ -123,7 +125,7 @@ class Control(commands.Cog):
             await state_handler.transition(session)
             await session_controller.resume(session)
         else:
-            await interaction.response.send_message('スキップするセッションがありません。')
+            await interaction.response.send_message('スキップするセッションがありません。', ephemeral=True)
 
     @app_commands.command(name="countdown", description="Start a countdown timer")
     @app_commands.describe(
@@ -134,27 +136,29 @@ class Control(commands.Cog):
     async def countdown(self, interaction: discord.Interaction, duration: int, title: str = 'Countdown', audio_alert: str = None):
         session = session_manager.active_sessions.get(session_manager.session_id_from(interaction))
         if session:
-            await interaction.response.send_message(f'アクティブなセッションが{session.ctx.channel.name}で実行中です。カウントダウンを開始する前に、まず停止してください。')
+            await interaction.response.send_message(f'アクティブなセッションが{session.ctx.channel.name}で実行中です。カウントダウンを開始する前に、まず停止してください。', ephemeral=True)
             return
 
         if not 0 < duration <= 180:
-            await interaction.response.send_message("countdown:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+            await interaction.response.send_message("countdown:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             return
 
         if not interaction.user.voice:
-            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください！')
+            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください', ephemeral=True)
             return
 
         # Voice channel validation
         user_vc = interaction.user.voice.channel
         tc = interaction.channel
         if user_vc.name != tc.name:
-            await interaction.response.send_message(f'/countdown コマンドはテキストチャンネル{user_vc.name}で実行してください')
+            await interaction.response.send_message(f'`/countdown` コマンドはテキストチャンネル`{user_vc.name}`で実行してください', ephemeral=True)
             return
             
         session = Session(bot_enum.State.COUNTDOWN,
                           Settings(duration),
-                          interaction)
+                          interaction,
+                          user_vc,
+                          )
         await countdown.handle_connection(session, audio_alert)
         session_manager.activate(session)
         await session_messenger.send_countdown_msg(session, title)
@@ -163,7 +167,7 @@ class Control(commands.Cog):
     @countdown.error
     async def countdown_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandInvokeError):
-            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
         else:
             print(error)
 

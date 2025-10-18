@@ -1,7 +1,5 @@
 import time as t
 
-from discord import Colour
-
 from .Session import Session
 
 
@@ -22,12 +20,12 @@ async def update_msg(session: Session):
     original_description = embed.description or ""
     
     # 既に残り時間が含まれている場合は除去
-    if ' - 残り' in original_description:
+    if '\n**残り' in original_description:
         # 最後の " - 残りXX:XX" 部分を除去
-        parts = original_description.split(' - 残り')
+        parts = original_description.split('\n**残り')
         if len(parts) > 1:
             original_description = parts[0]
     
     # 新しい残り時間を追加
-    embed.description = f'{original_description} - 残り{timer.time_remaining_to_str(hi_rez=True)}'
+    embed.description = f'{original_description}\n**残り{timer.time_remaining_to_str(hi_rez=True)}**'
     await pomodoro_msg.edit(embed=embed)

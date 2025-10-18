@@ -18,7 +18,7 @@ class Settings:
                 and (not long_break or config.MAX_INTERVAL_MINUTES > long_break > 0) \
                 and (not intervals or config.MAX_INTERVAL_MINUTES > intervals > 0):
             return True
-        await ctx.send("is_valid:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+        await ctx.send("is_valid:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
         return False
 
     @classmethod
