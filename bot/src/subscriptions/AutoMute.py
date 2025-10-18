@@ -61,18 +61,9 @@ class AutoMute(Subscription):
             await self._send_message(ctx, 'ステージチャンネルではAuto-muteはサポートされていません。')
             return
         
-        if who == ALL:
+        if who == ALL or self.all:
             for member in vc_members:
                 await self.safe_edit_member(member)
-        elif who:
-            await self.safe_edit_member(who)
-        elif self.all:
-            for member in vc_members:
-                await self.safe_edit_member(member)
-        else:
-            for member in vc_members:
-                if member in self.subs:
-                    await self.safe_edit_member(member)
 
     async def unmute(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
@@ -89,12 +80,6 @@ class AutoMute(Subscription):
         if who == ALL or self.all:
             for member in vc_members:
                 await self.safe_edit_member(member, unmute=True)
-        elif who:
-            await self.safe_edit_member(who, unmute=True)
-        else:
-            for member in vc_members:
-                if member in self.subs:
-                    await self.safe_edit_member(member, unmute=True)
 
     async def handle_all(self, ctx):
         print("getting author...")
@@ -120,38 +105,3 @@ class AutoMute(Subscription):
         else:
             self.all = True
             await self.mute(ctx, ALL)
-
-    async def remove_sub(self, ctx):
-        vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
-        vc = vc_accessor.get_voice_channel(ctx)
-        if not vc:
-            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
-            return
-        vc_name = vc.name
-        if self.all:
-            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
-            return
-        author = self._get_author(ctx)
-        if not author:
-            await self._send_message(ctx, 'ユーザー情報が取得できません。')
-            return
-        print(f'Removed {author} from auto-mute subscribers.')
-        self.subs.remove(author)
-        await self._send_message(ctx, f'{author.display_name}のAuto-mute購読を削除しました！')
-        if author in vc_members:
-            await self.unmute(ctx, author)
-
-    async def add_sub(self, session, author: Member | User):
-        ctx = session.ctx
-        vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
-        vc = vc_accessor.get_voice_channel(ctx)
-        if not vc:
-            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
-            return
-        vc_name = vc.name
-        if self.all:
-            await self._send_message(ctx, f'{vc_name}チャンネルの全メンバーのAuto-muteは既にオンです。')
-            return
-        self.subs.add(author)
-        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and author in vc_members:
-            await self.mute(ctx, author)
