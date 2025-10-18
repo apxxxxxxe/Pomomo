@@ -43,6 +43,13 @@ class Control(commands.Cog):
             print("DEBUG: User not in voice channel")
             await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください！')
             return
+
+        # Voice channel validation
+        user_vc = interaction.user.voice.channel
+        tc = interaction.channel
+        if user_vc.name != tc.name:
+            await interaction.response.send_message(f'/start コマンドはテキストチャンネル{user_vc.name}で実行してください')
+            return
             
         print("DEBUG: User in voice channel, creating session")
 
@@ -74,6 +81,14 @@ class Control(commands.Cog):
     async def stop(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
+            # Voice channel validation
+            from src.voice_client import vc_accessor
+            session_vc = vc_accessor.get_voice_channel(session.ctx)
+            tc = interaction.channel
+            if session_vc and session_vc.name != tc.name:
+                await interaction.response.send_message(f'/stop コマンドはテキストチャンネル{session_vc.name}で実行してください')
+                return
+
             if session.stats.pomos_completed > 0:
                 await interaction.response.send_message(f'お疲れ様です！ {msg_builder.stats_msg(session.stats)}を完了しました。')
             else:
@@ -86,6 +101,14 @@ class Control(commands.Cog):
     async def skip(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
+            # Voice channel validation
+            from src.voice_client import vc_accessor
+            session_vc = vc_accessor.get_voice_channel(session.ctx)
+            tc = interaction.channel
+            if session_vc and session_vc.name != tc.name:
+                await interaction.response.send_message(f'/skip コマンドはテキストチャンネル{session_vc.name}で実行してください')
+                return
+
             if session.state == bot_enum.State.COUNTDOWN:
                 await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには/stop、やり直すには/restartを使用してください。')
                 return
@@ -116,6 +139,17 @@ class Control(commands.Cog):
 
         if not 0 < duration <= 180:
             await interaction.response.send_message("countdown:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+            return
+
+        if not interaction.user.voice:
+            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください！')
+            return
+
+        # Voice channel validation
+        user_vc = interaction.user.voice.channel
+        tc = interaction.channel
+        if user_vc.name != tc.name:
+            await interaction.response.send_message(f'/countdown コマンドはテキストチャンネル{user_vc.name}で実行してください')
             return
             
         session = Session(bot_enum.State.COUNTDOWN,
