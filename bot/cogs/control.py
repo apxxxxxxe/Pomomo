@@ -110,7 +110,7 @@ class Control(commands.Cog):
                 return
 
             if session.state == bot_enum.State.COUNTDOWN:
-                await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには/stop、やり直すには/restartを使用してください。')
+                await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには/stopを使用してください。')
                 return
                 
             stats = session.stats
@@ -134,7 +134,7 @@ class Control(commands.Cog):
     async def countdown(self, interaction: discord.Interaction, duration: int, title: str = 'Countdown', audio_alert: str = None):
         session = session_manager.active_sessions.get(session_manager.session_id_from(interaction))
         if session:
-            await interaction.response.send_message('アクティブなセッションが実行中です。カウントダウンを開始する前に、まず停止してください。')
+            await interaction.response.send_message(f'アクティブなセッションが{session.ctx.channel.name}で実行中です。カウントダウンを開始する前に、まず停止してください。')
             return
 
         if not 0 < duration <= 180:
