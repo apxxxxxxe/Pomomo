@@ -1,7 +1,7 @@
 import time as t
 from asyncio import sleep
 
-from . import session_manager, session_messenger, countdown, state_handler
+from . import session_manager, session_messenger, countdown, state_handler, pomodoro
 from .Session import Session
 from ..Settings import Settings
 from ..utils import player
@@ -67,7 +67,20 @@ async def end(session: Session):
 async def run_interval(session: Session) -> bool:
     session.timer.running = True
     timer_end = session.timer.end
-    await sleep(session.timer.remaining)
+    
+    # Pomodoroセッション中の残り時間表示
+    if session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
+        while session.timer.remaining > 0:
+            await sleep(1)
+            s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
+            if not (s and
+                    s.timer.running and
+                    timer_end == s.timer.end):
+                return False
+            await pomodoro.update_msg(session)
+    else:
+        await sleep(session.timer.remaining)
+    
     s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
     if not (s and
             s.timer.running and

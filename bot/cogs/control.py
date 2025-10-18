@@ -6,7 +6,7 @@ from discord import app_commands
 
 from src.Settings import Settings
 from configs import config, bot_enum, user_messages as u_msg
-from src.session import session_manager, session_controller, session_messenger, countdown, state_handler
+from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro
 from src.session.Session import Session
 from src.utils import msg_builder
 
