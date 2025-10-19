@@ -79,7 +79,8 @@ class Subscribe(commands.Cog):
         if before.channel:
             print(f'{member.display_name} left the channel {before.channel.name}.')
             session = vc_manager.get_connected_session(str(before.channel.guild.id))
-            if session:
+            session_vc = vc_accessor.get_voice_channel(session.ctx)
+            if session and session_vc.id == before.channel.id:
                 auto_mute = session.auto_mute
                 if auto_mute.all:
                     if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
@@ -89,7 +90,8 @@ class Subscribe(commands.Cog):
                             await member.edit(mute=False)
                         except HTTPException as e:
                             if e.text == "Target user is not connected to voice.":
-                                await session.start_channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", ephemeral=True)
+                                print("text is",e.text)
+                                await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", silent=True)
                             else:
                                 print(e.text)
 
