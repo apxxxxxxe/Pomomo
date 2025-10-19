@@ -82,23 +82,22 @@ class AutoMute(Subscription):
                 await self.safe_edit_member(member, unmute=True)
 
     async def handle_all(self, ctx):
-        print("getting author...")
-        author = self._get_author(ctx)
-        print("checking permissions...")
-        if not author:
-            await self._send_message(ctx, 'ユーザー情報が取得できません。')
+        print("getting voice channel...")
+        from ..voice_client import vc_accessor
+        
+        # ボイスチャンネルを取得（ミュート操作が実際に行われる場所）
+        voice_channel = vc_accessor.get_voice_channel(ctx)
+        if not voice_channel:
+            await self._send_message(ctx, 'ボイスチャンネルに接続されていません。')
             return
-        channel = self._get_channel(ctx)
-        if not channel:
-            await self._send_message(ctx, 'チャンネル情報が取得できません。')
+        
+        # ボイスチャンネルでのボットの権限チェック
+        bot_member = voice_channel.guild.me
+        bot_permissions = voice_channel.permissions_for(bot_member)
+        if not (bot_permissions.mute_members or bot_permissions.administrator):
+            await self._send_message(ctx, f'ボットが{voice_channel.name}ボイスチャンネルでメンバーをミュートする権限を持っていません。サーバー管理者にボットの権限設定を確認してもらってください。')
             return
-        permissions = channel.permissions_for(author)
-        if not permissions:
-            await self._send_message(ctx, '権限情報が取得できません。')
-            return
-        if not (permissions.mute_members or permissions.administrator):
-            await self._send_message(ctx, '他のメンバーをミュートする権限がありません。')
-            return
+            
         if self.all:
             self.all = False
             await self.unmute(ctx, ALL)
