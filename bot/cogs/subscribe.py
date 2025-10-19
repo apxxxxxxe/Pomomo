@@ -31,7 +31,7 @@ class Subscribe(commands.Cog):
             auto_mute = session.auto_mute
             if not auto_mute.all:
                 await auto_mute.handle_all(interaction)
-                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫')
+                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
                 print("muted all users")
             else:
                 await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオンです', ephemeral=True)
@@ -56,7 +56,7 @@ class Subscribe(commands.Cog):
             auto_mute = session.auto_mute
             if auto_mute.all:
                 await auto_mute.handle_all(interaction)
-                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteをオフにしました')
+                await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
             else:
                 await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオフです', ephemeral=True)
         else:
