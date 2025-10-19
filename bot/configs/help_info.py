@@ -16,31 +16,18 @@ COUNTDOWN_ARGS = '複数単語のタイトルは" "で囲んでください（�
                  '音声チャンネルの音声アラートを無効にするには"mute"パラメータを追加してください。\n\n' \
                  f'使用例: {config.CMD_PREFIX}countdown 5 "宿題を終わらせる!" mute'
 
-COMMANDS = {'コントロールコマンド': {'start': ['start [pomodoro] [short_break] [long_break] [intervals]',
-                                           'オプションのカスタム設定でポモドーロセッションを開始します。\n\n' + POMO_ARGS],
-                                 'pause': ['pause', 'セッションを一時停止'],
-                                 'resume': ['resume', 'セッションを再開'],
-                                 'restart': ['restart', 'タイマーを再開始'],
-                                 'skip': ['skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],
-                                 'stop': ['stop', 'セッションを終了'],
-                                 'edit': ['edit <pomodoro> [short_break] [long_break] [intervals]',
-                                          '新しい設定でセッションを継続\n\n' + POMO_ARGS],
-                                 'countdown': ['countdown <duration> [title] [mute]',
-                                               'リアルタイムで更新されるタイマー付きのピン留めメッセージを送信するカウントダウンを開始します。\n\n' +
-                                               COUNTDOWN_ARGS]
-                                 },
-            '情報コマンド': {'time': ['time', '残り時間を取得'],
-                              'stats': ['stats', 'セッション統計を取得'],
-                              'settings': ['settings', 'セッション設定を取得'],
-                              'servers': ['servers', 'Pomomoを使用しているサーバー数を確認']},
-            'サブスクリプションコマンド': {'dm': ['dm', 'サーバーのセッションのDMアラート購読を切り替え'],
-                                      'enableautomute': ['enableautomute', 'ポモドーロインターバル中に自動的に'
-                                                                          'スピーカーとマイクをオフにする機能を有効にします。\n'
-                                                                          'ミュートとスピーカーオフの権限を持つメンバーが'
-                                                                          'ポモドーロ音声チャンネルの'
-                                                                          '全員をauto_mute有効にできます。'],
-                                     'disableautomute': ['disableautomute', 'ポモドーロインターバル中に自動的に'
-                                                                           'スピーカーとマイクをオフにする機能を無効にします。\n'
-                                                                           'ミュートとスピーカーオフの権限を持つメンバーが'
-                                                                           'ポモドーロ音声チャンネルの'
-                                                                           '全員をauto_mute無効にできます。']}}
+COMMANDS = {
+    'コントロールコマンド': {
+        'start': ['/start [pomodoro] [short_break] [long_break] [intervals]',
+            'オプションのカスタム設定でポモドーロセッションを開始します。\n\n' + POMO_ARGS],
+        'skip': ['/skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],
+        'stop': ['/stop', 'セッションを終了'],
+        'countdown': ['/countdown <duration> [title] [mute]',
+            'リアルタイムで更新されるタイマー付きのピン留めメッセージを送信するカウントダウンを開始します。\n\n' +
+            COUNTDOWN_ARGS]
+    },
+    'サブスクリプションコマンド': {
+        'enableautomute': ['/enableautomute', 'ポモドーロインターバル中に\n自動的にスピーカーとマイクをオフにする機能を有効にします。'],
+        'disableautomute': ['/disableautomute', 'ポモドーロインターバル中に\n自動的にスピーカーとマイクをオフにする機能を無効にします。']
+    }
+}

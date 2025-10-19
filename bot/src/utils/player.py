@@ -11,12 +11,13 @@ async def alert(session: Session):
     if not vc:
         return
 
-    path = bot_enum.AlertPath.POMO_END
     if session.state == bot_enum.State.COUNTDOWN:
-        pass
-    elif session.stats.pomos_completed > 0 and session.stats.pomos_completed % session.settings.intervals == 0:
+        path = bot_enum.AlertPath.POMO_END
+    elif session.state == bot_enum.State.POMODORO:
+        path = bot_enum.AlertPath.POMO_START
+    elif session.state == bot_enum.State.LONG_BREAK:
         path = bot_enum.AlertPath.LONG_BREAK_START
-    elif session.state != bot_enum.State.POMODORO:
+    else:  # SHORT_BREAK
         path = bot_enum.AlertPath.POMO_START
     source = PCMVolumeTransformer(FFmpegPCMAudio(path, executable='ffmpeg'),
                                   volume=0.1)

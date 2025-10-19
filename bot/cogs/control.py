@@ -8,6 +8,7 @@ from src.Settings import Settings
 from configs import config, bot_enum, user_messages as u_msg
 from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro
 from src.session.Session import Session
+from src.voice_client import vc_accessor
 from src.utils import msg_builder
 
 
@@ -16,14 +17,15 @@ class Control(commands.Cog):
     def __init__(self, client):
         self.client = client
 
+
     @app_commands.command(name="start", description="Start a Pomodoro session")
     @app_commands.describe(
         pomodoro="作業時間（分、デフォルト: 20）",
-        short_break="短い休憩時間（分、デフォルト: 5）",
-        long_break="長い休憩時間（分、デフォルト: 15）",
+        short_break="短い休憩時間（分、デフォルト: 10）",
+        long_break="長い休憩時間（分、デフォルト: 30）",
         intervals="長い休憩までの繰り返し数（デフォルト: 4）"
     )
-    async def start(self, interaction: discord.Interaction, pomodoro: int = 20, short_break: int = 5, long_break: int = 15, intervals: int = 4):
+    async def start(self, interaction: discord.Interaction, pomodoro: int = 20, short_break: int = 10, long_break: int = 30, intervals: int = 4):
         print(f"DEBUG: start command called with params: pomodoro={pomodoro}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
         
         if not await Settings.is_valid_interaction(interaction, pomodoro, short_break, long_break, intervals):
@@ -56,7 +58,6 @@ class Control(commands.Cog):
         session = Session(bot_enum.State.POMODORO,
                           Settings(pomodoro, short_break, long_break, intervals),
                           interaction,
-                          user_vc,
                           )
         print("DEBUG: Session created, starting session controller")
         await session_controller.start(session)
@@ -83,19 +84,29 @@ class Control(commands.Cog):
     async def stop(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
-            # Voice channel validation
-            from src.voice_client import vc_accessor
+            await interaction.response.send_message('セッションを終了します。', ephemeral=True)
             session_vc = vc_accessor.get_voice_channel(session.ctx)
             tc = interaction.channel
             if session_vc and session_vc.name != tc.name:
                 await interaction.response.send_message(f'`/stop` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
                 return
 
-            if session.stats.pomos_completed > 0:
-                await interaction.response.send_message(f'お疲れ様です！ {msg_builder.stats_msg(session.stats)}を完了しました。')
-            else:
-                await interaction.response.send_message(f'またお会いしましょう！ 👋')
             await session_controller.end(session)
+
+            # start_msgを条件に応じて書き換え
+            if session.bot_start_msg:
+                print("editing bot_start_msg...")
+                embed = session.bot_start_msg.embeds[0]
+                embed.set_footer(text='終了したセッション')
+                message='またお会いしましょう！ 👋'
+                if session.state == bot_enum.State.POMODORO and session.stats.pomos_completed >= 1:
+                    message='お疲れ様です！ 👋'
+                    embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
+                    embed.colour = discord.Colour.green()
+                else:
+                    embed.description = '中断'
+                    embed.colour = discord.Colour.red()
+                await session.bot_start_msg.edit(content=message, embed=embed)
         else:
             await interaction.response.send_message('停止するアクティブなセッションがありません。', ephemeral=True)
 
@@ -136,7 +147,8 @@ class Control(commands.Cog):
     async def countdown(self, interaction: discord.Interaction, duration: int, title: str = 'Countdown', audio_alert: str = None):
         session = session_manager.active_sessions.get(session_manager.session_id_from(interaction))
         if session:
-            await interaction.response.send_message(f'アクティブなセッションが{session.ctx.channel.name}で実行中です。カウントダウンを開始する前に、まず停止してください。', ephemeral=True)
+            session_vc = vc_accessor.get_voice_channel(session.ctx)
+            await interaction.response.send_message(f'アクティブなセッションが{session_vc.name}で実行中です。\nカウントダウンを開始する前に、まず停止してください。', ephemeral=True)
             return
 
         if not 0 < duration <= 180:
@@ -157,7 +169,6 @@ class Control(commands.Cog):
         session = Session(bot_enum.State.COUNTDOWN,
                           Settings(duration),
                           interaction,
-                          user_vc,
                           )
         await countdown.handle_connection(session, audio_alert)
         session_manager.activate(session)

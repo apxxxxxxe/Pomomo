@@ -13,7 +13,7 @@ class Subscribe(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @app_commands.command(name="enableautomute", description="Enable auto-mute functionality for all members in the channel")
+    @app_commands.command(name="enableautomute", description="Enable automute functionality for all members in the channel")
     async def enableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
@@ -25,7 +25,7 @@ class Subscribe(commands.Cog):
                 return
 
             if not vc_accessor.get_voice_channel_interaction(interaction):
-                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
+                await interaction.response.send_message('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
             channel_name = vc_accessor.get_voice_channel(session.ctx).name
             auto_mute = session.auto_mute
@@ -38,7 +38,7 @@ class Subscribe(commands.Cog):
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
-    @app_commands.command(name="disableautomute", description="Disable auto-mute functionality for all members in the channel")
+    @app_commands.command(name="disableautomute", description="Disable automute functionality for all members in the channel")
     async def disableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
@@ -50,7 +50,7 @@ class Subscribe(commands.Cog):
                 return
 
             if not vc_accessor.get_voice_channel_interaction(interaction):
-                await interaction.response.send_message('auto-muteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
+                await interaction.response.send_message('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
             channel_name = vc_accessor.get_voice_channel(session.ctx).name
             auto_mute = session.auto_mute
@@ -97,7 +97,7 @@ class Subscribe(commands.Cog):
         if after.channel:
             print(f'{member.display_name} joined the channel {after.channel.name}.')
             session = vc_manager.get_connected_session(str(after.channel.guild.id))
-            session_vc = session.voice_channel
+            session_vc = vc_accessor.get_voice_channel(session.ctx)
             if session and session_vc.name == after.channel.name:
                 auto_mute = session.auto_mute
                 if auto_mute.all:

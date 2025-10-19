@@ -9,7 +9,7 @@ from ..subscriptions.Subscription import Subscription
 
 class Session:
 
-    def __init__(self, state: str, settings: Settings, ctx, voice_channel):
+    def __init__(self, state: str, settings: Settings, ctx):
 
         self.state = state
         self.settings = settings
@@ -19,7 +19,6 @@ class Session:
         self.timeout = 0
         self.bot_start_msg = None
         self.start_channel = ctx.channel
-        self.voice_channel = voice_channel
 
         # Subscriptions
         self.dm = Subscription()

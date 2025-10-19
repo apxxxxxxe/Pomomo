@@ -11,6 +11,11 @@ def settings_embed(session: Session) -> Embed:
                f'短い休憩: {settings.short_break} 分\n' \
                f'長い休憩: {settings.long_break} 分\n' \
                f'インターバル: {settings.intervals}  ({settings.intervals} 回目の作業後に長い休憩)'
+    
+    # 残り時間表示を追加
+    if session.timer and session.timer.remaining > 0:
+        settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**'
+    
     embed = Embed(title='作業セッション設定', description=settings_str, colour=Colour.orange())
 
     vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
@@ -43,24 +48,21 @@ def help_embed(for_command) -> Embed:
 
 
 def stats_msg(stats: Stats):
-    pomo_str = 'pomodoros'
-    minutes_str = 'minutes'
+    pomo_str = 'サイクル'
+    minutes_str = '分'
     hours_str: str
+    time_completed_str: str
     if stats.minutes_completed >= 60:
-        hours_str = 'hours'
+        hours_str = '時間'
         hours_completed = int(stats.minutes_completed/60)
-        if hours_completed == 1:
-            hours_str = 'hour'
-        time_completed_str = f'{hours_completed} {hours_str}'
+        time_completed_str = f'{hours_completed}{hours_str}'
         minutes_completed = int(stats.minutes_completed % 60)
-        if minutes_completed == 1:
-            minutes_str = 'minute'
         if minutes_completed > 0:
-            time_completed_str += f' {minutes_completed} {minutes_str}'
+            time_completed_str += f' {minutes_completed}{minutes_str}'
     else:
         if stats.minutes_completed == 1:
             minutes_str = 'minute'
-        time_completed_str = f'{stats.minutes_completed} {minutes_str}'
+        time_completed_str = f'{stats.minutes_completed}{minutes_str}'
     if stats.pomos_completed == 1:
         pomo_str = 'pomodoro'
-    return f'{stats.pomos_completed} {pomo_str} ({time_completed_str})'
+    return f'{stats.pomos_completed}{pomo_str}({time_completed_str})'

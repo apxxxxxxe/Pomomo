@@ -19,15 +19,6 @@ async def handle_connection(session: Session, audio_alert: str):
             await vc.disconnect()
 
 
-async def cleanup_pins(session: Session):
-    for pinned_msg in await session.ctx.channel.pins():
-        if session.bot_start_msg and pinned_msg != session.bot_start_msg and pinned_msg.author == (session.ctx.client if hasattr(session.ctx, 'client') else session.ctx.bot).user:
-            embed = pinned_msg.embeds[0]
-            embed.colour = Colour.red()
-            await pinned_msg.unpin()
-            await pinned_msg.edit(embed=embed)
-
-
 async def update_msg(session: Session):
     timer = session.timer
     timer.remaining = timer.end - t.time()
@@ -37,7 +28,7 @@ async def update_msg(session: Session):
     embed = countdown_msg.embeds[0]
     if timer.remaining < 0:
         embed.colour = Colour.red()
-        embed.description = 'DONE!'
+        embed.description = '終了!'
         await session.auto_mute.unmute(session.ctx)
         await countdown_msg.edit(embed=embed)
         await session.dm.send_dm(embed=embed)
@@ -50,7 +41,6 @@ async def update_msg(session: Session):
 
 async def start(session: Session):
     session.timer.running = True
-    # await cleanup_pins(session)
     while True:
         time_remaining = session.timer.remaining
         await sleep(1)

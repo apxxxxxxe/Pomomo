@@ -19,19 +19,7 @@ async def send_start_msg(session: Session):
             session.bot_start_msg = await session.ctx.original_response()
         else:
             session.bot_start_msg = await session.ctx.followup.send(message, embed=embed)
-
-
-async def send_edit_msg(session: Session):
-    embed = msg_builder.settings_embed(session)
-    message = '新しい設定でポモドーロセッションを継続中！'
-    
-    if hasattr(session.ctx, 'send'):  # Context
-        await session.ctx.send(message, embed=embed)
-    else:  # Interaction
-        if not session.ctx.response.is_done():
-            await session.ctx.response.send_message(message, embed=embed)
-        else:
-            await session.ctx.followup.send(message, embed=embed)
+    await session.bot_start_msg.pin()
 
 
 async def send_countdown_msg(session: Session, title: str):
@@ -47,4 +35,4 @@ async def send_countdown_msg(session: Session, title: str):
         else:
             session.bot_start_msg = await session.ctx.followup.send(embed=embed)
     print("countdown message sent")
-    # await session.bot_start_msg.pin()
+    await session.bot_start_msg.pin()

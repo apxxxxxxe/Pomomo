@@ -1,9 +1,9 @@
 import time as t
 from asyncio import sleep
+from discord import Colour
 
 from . import session_manager, session_messenger, countdown, state_handler, pomodoro
 from .Session import Session
-from ..Settings import Settings
 from ..utils import player
 from ..voice_client import vc_accessor, vc_manager
 from configs import config, bot_enum
@@ -47,17 +47,19 @@ async def start(session: Session):
         raise
 
 
-async def edit(session: Session, new_settings: Settings):
-    short_break = new_settings.short_break or session.settings.short_break
-    long_break = new_settings.long_break or session.settings.long_break
-    intervals = new_settings.intervals or session.settings.intervals
-    session.settings = Settings(new_settings.duration, short_break, long_break, intervals)
-    await session_messenger.send_edit_msg(session)
+async def cleanup_pins(session: Session):
+    for pinned_msg in await session.ctx.channel.pins():
+        # botが送信したピン留めメッセージをアンピンし、色を赤に変更
+        if pinned_msg.author == (session.ctx.client if hasattr(session.ctx, 'client') else session.ctx.bot).user:
+            embed = pinned_msg.embeds[0]
+            embed.colour = Colour.red()
+            await pinned_msg.unpin()
+            await pinned_msg.edit(embed=embed)
 
 
 async def end(session: Session):
     ctx = session.ctx
-    await countdown.cleanup_pins(session)
+    await cleanup_pins(session)
     await session.auto_mute.unmute(ctx)
     if vc_accessor.get_voice_client(ctx):
         await vc_manager.disconnect(session)
@@ -91,6 +93,6 @@ async def run_interval(session: Session) -> bool:
             return False
         if session.state == bot_enum.State.POMODORO:
             await session.auto_mute.unmute(session.ctx)
-        await player.alert(session)
         await state_handler.transition(session)
+        await player.alert(session)
     return True

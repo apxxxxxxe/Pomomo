@@ -1,8 +1,8 @@
 class State:
-    POMODORO = 'pomodoro'
-    SHORT_BREAK = 'short break'
-    LONG_BREAK = 'long break'
-    COUNTDOWN = 'countdown'
+    POMODORO = '作業中'
+    SHORT_BREAK = '短い休憩'
+    LONG_BREAK = '長い休憩'
+    COUNTDOWN = 'カウントダウン'
 
 
 class AlertPath:

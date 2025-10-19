@@ -23,18 +23,5 @@ class Info(commands.Cog):
         else:
             await interaction.response.send_message('有効なコマンドを入力してください。')
 
-    @app_commands.command(name="time", description="Show remaining time in current session")
-    async def time(self, interaction: discord.Interaction):
-        session = await session_manager.get_session_interaction(interaction)
-        if session:
-            await interaction.response.send_message(f'{session.state}の残り時間：{session.timer.time_remaining_to_str()}！')
-        else:
-            await interaction.response.send_message('アクティブなセッションがありません。')
-
-    @app_commands.command(name="servers", description="Show server information")
-    async def servers(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'Pomomoは{len(self.client.guilds)}のサーバーの {len(session_manager.active_sessions)}個のアクティブセッションで稼働中です！')
-
-
 async def setup(client):
     await client.add_cog(Info(client))
