@@ -75,7 +75,7 @@ class Control(commands.Cog):
                 await interaction.response.send_message("start_error_1:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             else:
                 print("DEBUG: Sending start_error_2 followup message")
-                await interaction.followup.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+                await interaction.followup.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
         else:
             print(f"DEBUG: Other error type: {type(error)}")
             print(error)
@@ -178,7 +178,7 @@ class Control(commands.Cog):
     @countdown.error
     async def countdown_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandInvokeError):
-            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
         else:
             print(error)
 
