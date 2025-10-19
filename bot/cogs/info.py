@@ -14,7 +14,7 @@ class Info(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @app_commands.command(name="help", description="Get help information")
+    @app_commands.command(name="help", description="ヘルプ情報を表示する")
     @app_commands.describe(command="ヘルプを表示するコマンド名（省略可）")
     async def help(self, interaction: discord.Interaction, command: str = ''):
         help_embed = msg_builder.help_embed(command)

@@ -7,9 +7,10 @@ async def transition(session: Session):
     if session.state == bot_enum.State.POMODORO:
         stats = session.stats
         stats.pomos_completed += 1
+        stats.pomos_elapsed += 1
         stats.minutes_completed += session.settings.duration
-        if stats.pomos_completed > 0 and\
-                stats.pomos_completed % session.settings.intervals == 0:
+        if stats.pomos_elapsed > 0 and\
+                stats.pomos_elapsed % session.settings.intervals == 0:
             session.state = bot_enum.State.LONG_BREAK
         else:
             session.state = bot_enum.State.SHORT_BREAK

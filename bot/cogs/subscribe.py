@@ -13,7 +13,7 @@ class Subscribe(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @app_commands.command(name="enableautomute", description="Enable automute functionality for all members in the channel")
+    @app_commands.command(name="enableautomute", description="チャンネル内の全メンバーの自動ミュート機能を有効にする")
     async def enableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
@@ -38,7 +38,7 @@ class Subscribe(commands.Cog):
         else:
             await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
 
-    @app_commands.command(name="disableautomute", description="Disable automute functionality for all members in the channel")
+    @app_commands.command(name="disableautomute", description="チャンネル内の全メンバーの自動ミュート機能を無効にする")
     async def disableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:

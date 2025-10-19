@@ -8,8 +8,8 @@ from src.Settings import Settings
 from configs import config, bot_enum, user_messages as u_msg
 from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro
 from src.session.Session import Session
+from src.utils import player, msg_builder
 from src.voice_client import vc_accessor
-from src.utils import msg_builder
 
 
 class Control(commands.Cog):
@@ -18,7 +18,7 @@ class Control(commands.Cog):
         self.client = client
 
 
-    @app_commands.command(name="start", description="Start a Pomodoro session")
+    @app_commands.command(name="start", description="ポモドーロセッションを開始する")
     @app_commands.describe(
         pomodoro="作業時間（分、デフォルト: 20）",
         short_break="短い休憩時間（分、デフォルト: 10）",
@@ -80,7 +80,7 @@ class Control(commands.Cog):
             print(f"DEBUG: Other error type: {type(error)}")
             print(error)
 
-    @app_commands.command(name="stop", description="Stop the current Pomodoro session")
+    @app_commands.command(name="stop", description="現在のポモドーロセッションを停止する")
     async def stop(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
@@ -110,7 +110,7 @@ class Control(commands.Cog):
         else:
             await interaction.response.send_message('停止するアクティブなセッションがありません。', ephemeral=True)
 
-    @app_commands.command(name="skip", description="Skip the current interval")
+    @app_commands.command(name="skip", description="現在のインターバルをスキップする")
     async def skip(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
@@ -132,13 +132,15 @@ class Control(commands.Cog):
                 stats.pomos_completed -= 1
                 stats.minutes_completed -= session.settings.duration
 
-            await interaction.response.send_message(f'{session.state}をスキップします。')
+            old_state = session.state
             await state_handler.transition(session)
+            await interaction.response.send_message(f'{old_state}をスキップし、{session.state}を開始します。')
+            await player.alert(session)
             await session_controller.resume(session)
         else:
             await interaction.response.send_message('スキップするセッションがありません。', ephemeral=True)
 
-    @app_commands.command(name="countdown", description="Start a countdown timer")
+    @app_commands.command(name="countdown", description="カウントダウンタイマーを開始する")
     @app_commands.describe(
         duration="継続時間（分、1-180）",
         title="カウントダウンのタイトル（デフォルト: 'Countdown'）",
