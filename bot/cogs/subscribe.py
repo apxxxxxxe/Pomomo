@@ -17,13 +17,6 @@ class Subscribe(commands.Cog):
     async def enableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
-            # Voice channel validation
-            session_vc = vc_accessor.get_voice_channel(session.ctx)
-            tc = interaction.channel
-            if session_vc and session_vc.name != tc.name:
-                await interaction.response.send_message(f'`/enableautomute` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
-                return
-
             if not vc_accessor.get_voice_channel_interaction(interaction):
                 await interaction.response.send_message('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
@@ -42,13 +35,6 @@ class Subscribe(commands.Cog):
     async def disableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
-            # Voice channel validation
-            session_vc = vc_accessor.get_voice_channel(session.ctx)
-            tc = interaction.channel
-            if session_vc and session_vc.name != tc.name:
-                await interaction.response.send_message(f'`/disableautomute` コマンドはテキストチャンネル`{session_vc.name}`で実行してください', ephemeral=True)
-                return
-
             if not vc_accessor.get_voice_channel_interaction(interaction):
                 await interaction.response.send_message('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
