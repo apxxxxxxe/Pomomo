@@ -1,10 +1,8 @@
 from discord.ext.commands import Context
 from discord.channel import TextChannel, VoiceChannel
 from discord import User, Member
-from typing import Union
 
 from ..voice_client import vc_accessor
-from configs import bot_enum
 from .Subscription import Subscription
 
 
@@ -95,7 +93,7 @@ class AutoMute(Subscription):
         bot_member = voice_channel.guild.me
         bot_permissions = voice_channel.permissions_for(bot_member)
         if not (bot_permissions.mute_members or bot_permissions.administrator):
-            await self._send_message(ctx, f'ボットが{voice_channel.name}ボイスチャンネルでメンバーをミュートする権限を持っていません。サーバー管理者にボットの権限設定を確認してもらってください。')
+            await self._send_message(ctx, f'ボットが `{voice_channel.name}` ボイスチャンネルでメンバーをミュートする権限を持っていません。\nbotアカウント `{bot_member.name}` へ `{voice_channel.name}` ボイスチャンネルでの「メンバーをミュートする」権限を付与してください。')
             return
             
         if self.all:
