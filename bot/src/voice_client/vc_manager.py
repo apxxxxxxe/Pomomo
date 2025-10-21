@@ -23,7 +23,7 @@ async def connect(session: Session):
     # Get user voice channel
     user_voice = ctx.author.voice if hasattr(ctx, 'author') else ctx.user.voice
     voice_client = await user_voice.channel.connect()
-    await ctx.guild.get_member((ctx.client if hasattr(ctx, 'client') else ctx.bot).user.id).edit(deafen=True)
+    # await ctx.guild.get_member((ctx.client if hasattr(ctx, 'client') else ctx.bot).user.id).edit(deafen=True)
     if voice_client:
         connected_sessions[str(ctx.guild.id)] = session
     return True
