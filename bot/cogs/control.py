@@ -28,22 +28,26 @@ class Control(commands.Cog):
     async def start(self, interaction: discord.Interaction, pomodoro: int = 20, short_break: int = 10, long_break: int = 30, intervals: int = 4):
         print(f"DEBUG: start command called with params: pomodoro={pomodoro}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
         
+        # 即座にdeferでレスポンス
+        await interaction.response.defer()
+        
         if not await Settings.is_valid_interaction(interaction, pomodoro, short_break, long_break, intervals):
             print("DEBUG: Settings.is_valid_interaction returned False")
+            await interaction.followup.send("無効なパラメータです。", ephemeral=True)
             return
             
         print("DEBUG: Settings validation passed")
         
         if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
             print("DEBUG: Active session exists")
-            await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
+            await interaction.followup.send(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
             return
             
         print("DEBUG: No active session found")
         
         if not interaction.user.voice:
             print("DEBUG: User not in voice channel")
-            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください', ephemeral=True)
+            await interaction.followup.send('Pomomoを使用するには音声チャンネルに参加してください', ephemeral=True)
             return
 
 
@@ -55,7 +59,11 @@ class Control(commands.Cog):
                           interaction,
                           )
         print("DEBUG: Session created, starting session controller")
-        await session_controller.start(session)
+        try:
+            await session_controller.start(session)
+        except Exception as e:
+            print(f"DEBUG: Error starting session: {e}")
+            await interaction.followup.send("セッションの開始に失敗しました。", ephemeral=True)
 
     @start.error
     async def start_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -77,29 +85,35 @@ class Control(commands.Cog):
 
     @app_commands.command(name="stop", description="現在のポモドーロセッションを停止する")
     async def stop(self, interaction: discord.Interaction):
+        # 即座にdeferでレスポンス
+        await interaction.response.defer()
+        
         session = await session_manager.get_session_interaction(interaction)
         if session:
-            await interaction.response.send_message('セッションを終了します。', silent=True)
+            try:
+                await session_controller.end(session)
 
-
-            await session_controller.end(session)
-
-            # start_msgを条件に応じて書き換え
-            if session.bot_start_msg:
-                print("editing bot_start_msg...")
-                embed = session.bot_start_msg.embeds[0]
-                embed.set_footer(text='終了したセッション')
-                message='またお会いしましょう！ 👋'
-                if session.state == bot_enum.State.POMODORO and session.stats.pomos_completed >= 1:
-                    message='お疲れ様です！ 👋'
-                    embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
-                    embed.colour = discord.Colour.green()
-                else:
-                    embed.description = '中断'
-                    embed.colour = discord.Colour.red()
-                await session.bot_start_msg.edit(content=message, embed=embed)
+                # start_msgを条件に応じて書き換え
+                if session.bot_start_msg:
+                    print("editing bot_start_msg...")
+                    embed = session.bot_start_msg.embeds[0]
+                    embed.set_footer(text='終了したセッション')
+                    message='またお会いしましょう！ 👋'
+                    if session.state == bot_enum.State.POMODORO and session.stats.pomos_completed >= 1:
+                        message='お疲れ様です！ 👋'
+                        embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
+                        embed.colour = discord.Colour.green()
+                    else:
+                        embed.description = '中断'
+                        embed.colour = discord.Colour.red()
+                    await session.bot_start_msg.edit(content=message, embed=embed)
+                
+                await interaction.followup.send('セッションを終了しました。')
+            except Exception as e:
+                print(f"DEBUG: Error stopping session: {e}")
+                await interaction.followup.send('セッション終了時にエラーが発生しました。')
         else:
-            await interaction.response.send_message('停止するアクティブなセッションがありません。', ephemeral=True)
+            await interaction.followup.send('停止するアクティブなセッションがありません。', ephemeral=True)
 
     @app_commands.command(name="skip", description="現在のインターバルをスキップする")
     async def skip(self, interaction: discord.Interaction):
