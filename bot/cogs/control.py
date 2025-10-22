@@ -78,7 +78,7 @@ class Control(commands.Cog):
                 await interaction.response.send_message("start_error_1:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             else:
                 print("DEBUG: Sending start_error_2 followup message")
-                await interaction.followup.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+                await interaction.followup.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
         else:
             print(f"DEBUG: Other error type: {type(error)}")
             print(error)
@@ -108,10 +108,10 @@ class Control(commands.Cog):
                         embed.colour = discord.Colour.red()
                     await session.bot_start_msg.edit(content=message, embed=embed)
                 
-                await interaction.followup.send('セッションを終了しました。')
+                await interaction.followup.send('セッションを終了しました。', silent=True)
             except Exception as e:
                 print(f"DEBUG: Error stopping session: {e}")
-                await interaction.followup.send('セッション終了時にエラーが発生しました。')
+                await interaction.followup.send('セッション終了時にエラーが発生しました。', ephemeral=True)
         else:
             await interaction.followup.send('停止するアクティブなセッションがありません。', ephemeral=True)
 
@@ -175,7 +175,7 @@ class Control(commands.Cog):
     @countdown.error
     async def countdown_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandInvokeError):
-            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
         else:
             print(error)
 

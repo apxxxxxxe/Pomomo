@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord import app_commands, HTTPException
 
 from src.session import session_manager
-from src.subscriptions import AutoMute
 from src.voice_client import vc_accessor as vc_accessor, vc_manager as vc_manager
 from configs import bot_enum
 
@@ -28,7 +27,7 @@ class Subscribe(commands.Cog):
             if not auto_mute.all:
                 try:
                     await auto_mute.handle_all(interaction)
-                    await interaction.followup.send(f'{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫')
+                    await interaction.followup.send(f'{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
                     print("muted all users")
                 except Exception as e:
                     print(f"DEBUG: Error in enableautomute: {e}")
@@ -53,7 +52,7 @@ class Subscribe(commands.Cog):
             if auto_mute.all:
                 try:
                     await auto_mute.handle_all(interaction)
-                    await interaction.followup.send(f'{channel_name}ボイスチャンネルのautomuteをオフにしました')
+                    await interaction.followup.send(f'{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
                 except Exception as e:
                     print(f"DEBUG: Error in disableautomute: {e}")
                     await interaction.followup.send('automute機能の無効化に失敗しました。', ephemeral=True)
