@@ -36,10 +36,12 @@ def help_embed(for_command) -> Embed:
             for value in cmds_dict.values():
                 values += f'{value[0]}\n'
             embed.add_field(name=cmds_key, value=values, inline=False)
-        more_info = f'\nFor more info on a specific command, type \'{config.CMD_PREFIX}help [command]\'\n\n'
+        more_info = f'`/help [コマンド名]` で特定のコマンドについて詳しい説明が見れます'
         embed.add_field(name='\u200b', value=more_info, inline=False)
         return embed
     else:
+        if for_command.startswith('/'):
+            for_command = for_command[1:]
         for cmds_key, cmds_dict in help_info.COMMANDS.items():
             cmd_info = cmds_dict.get(for_command)
             if cmd_info:

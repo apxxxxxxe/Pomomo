@@ -16,17 +16,15 @@ COUNTDOWN_ARGS = '複数単語のタイトルは" "で囲んでください（�
                  f'使用例: /countdown 5 "宿題を終わらせる!" mute'
 
 COMMANDS = {
-    'コントロールコマンド': {
+    'コマンド一覧': {
         'start': ['/start [pomodoro] [short_break] [long_break] [intervals]',
             'オプションのカスタム設定でポモドーロセッションを開始します。\n\n' + POMO_ARGS],
         'skip': ['/skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],
         'stop': ['/stop', 'セッションを終了'],
         'countdown': ['/countdown <duration> [title] [mute]',
             'リアルタイムで更新されるタイマー付きのピン留めメッセージを送信するカウントダウンを開始します。\n\n' +
-            COUNTDOWN_ARGS]
-    },
-    'サブスクリプションコマンド': {
+            COUNTDOWN_ARGS],
         'enableautomute': ['/enableautomute', 'ポモドーロインターバル中に\n自動的にスピーカーとマイクをオフにする機能を有効にします。'],
         'disableautomute': ['/disableautomute', 'ポモドーロインターバル中に\n自動的にスピーカーとマイクをオフにする機能を無効にします。']
-    }
+    },
 }
