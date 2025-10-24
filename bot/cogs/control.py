@@ -8,7 +8,7 @@ from src.Settings import Settings
 from configs import config, bot_enum, user_messages as u_msg
 from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro
 from src.session.Session import Session
-from src.utils import player, msg_builder
+from src.utils import player, msg_builder, voice_validation
 from src.voice_client import vc_accessor
 
 
@@ -45,12 +45,10 @@ class Control(commands.Cog):
             
         print("DEBUG: No active session found")
         
-        if not interaction.user.voice:
+        if not await voice_validation.require_voice_channel(interaction):
             print("DEBUG: User not in voice channel")
-            await interaction.followup.send('Pomomoを使用するには音声チャンネルに参加してください', ephemeral=True)
+            await interaction.followup.send('`/start` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
             return
-
-
             
         print("DEBUG: User in voice channel, creating session")
 
@@ -87,9 +85,18 @@ class Control(commands.Cog):
     async def stop(self, interaction: discord.Interaction):
         # 即座にdeferでレスポンス
         await interaction.response.defer()
-        
         session = await session_manager.get_session_interaction(interaction)
         if session:
+            if not await voice_validation.require_same_voice_channel(interaction):
+                guild = interaction.guild
+                if guild and guild.voice_client:
+                    bot_name = interaction.client.user.display_name
+                    channel_name = guild.voice_client.channel.name
+                    await interaction.followup.send(f'`/stop` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+                else:
+                    await interaction.followup.send('`/stop` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+                return
+            
             try:
                 await session_controller.end(session)
 
@@ -119,8 +126,16 @@ class Control(commands.Cog):
     async def skip(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if session:
-
-
+            if not await voice_validation.require_same_voice_channel(interaction):
+                guild = interaction.guild
+                if guild and guild.voice_client:
+                    bot_name = interaction.client.user.display_name
+                    channel_name = guild.voice_client.channel.name
+                    await interaction.response.send_message(f'`/skip` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+                else:
+                    await interaction.response.send_message('`/skip` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+                return
+            
             if session.state == bot_enum.State.COUNTDOWN:
                 await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには`/stop`を使用してください。', ephemeral=True)
                 return
@@ -156,11 +171,8 @@ class Control(commands.Cog):
             await interaction.response.send_message("countdown:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             return
 
-        if not interaction.user.voice:
-            await interaction.response.send_message('Pomomoを使用するには音声チャンネルに参加してください', ephemeral=True)
-            return
-
-
+        if not await voice_validation.require_voice_channel(interaction):
+            await interaction.response.send_message('`/countdown` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
             return
             
         session = Session(bot_enum.State.COUNTDOWN,

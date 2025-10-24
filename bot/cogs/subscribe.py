@@ -1,9 +1,11 @@
 import discord
+import discord
 from discord.ext import commands
 from discord import app_commands, HTTPException
 
 from src.session import session_manager
 from src.voice_client import vc_accessor as vc_accessor, vc_manager as vc_manager
+from src.utils import voice_validation
 from configs import bot_enum
 
 
@@ -23,6 +25,10 @@ class Subscribe(commands.Cog):
                 await interaction.followup.send('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
             channel_name = vc_accessor.get_voice_channel(session.ctx).name
+            if not await voice_validation.require_same_voice_channel(interaction):
+                bot_name = interaction.client.user.display_name
+                await interaction.followup.send(f'`/enableautomute` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+                return
             auto_mute = session.auto_mute
             if not auto_mute.all:
                 try:
@@ -48,6 +54,10 @@ class Subscribe(commands.Cog):
                 await interaction.followup.send('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
                 return
             channel_name = vc_accessor.get_voice_channel(session.ctx).name
+            if not await voice_validation.require_same_voice_channel(interaction):
+                bot_name = interaction.client.user.display_name
+                await interaction.followup.send(f'`/enableautomute` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+                return
             auto_mute = session.auto_mute
             if auto_mute.all:
                 try:
