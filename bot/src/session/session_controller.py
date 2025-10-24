@@ -1,12 +1,13 @@
 import time as t
 from asyncio import sleep
 from discord import Colour
+import random
 
-from . import session_manager, session_messenger, countdown, state_handler, pomodoro
+from . import session_manager, countdown, state_handler, pomodoro
 from .Session import Session
-from ..utils import player
+from ..utils import player, msg_builder
 from ..voice_client import vc_accessor, vc_manager
-from configs import config, bot_enum
+from configs import config, bot_enum, user_messages as u_msg
 
 
 async def resume(session: Session):
@@ -21,6 +22,7 @@ async def resume(session: Session):
 
 
 async def start(session: Session):
+    # response.defer(ephemeral=True)の後に呼ばれる前提
     print("DEBUG: session_controller.start called")
     try:
         print("DEBUG: Calling vc_manager.connect")
@@ -32,7 +34,12 @@ async def start(session: Session):
         session_manager.activate(session)
         print("DEBUG: Session activated, sending start message")
         
-        await session_messenger.send_start_msg(session)
+        embed = msg_builder.settings_embed(session)
+        message = random.choice(u_msg.GREETINGS)
+        # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
+        await session.ctx.followup.send('処理が正常に完了しました')
+        session.bot_start_msg = await session.ctx.followup.send(message, embed=embed, wait=True, silent=True)
+        await session.bot_start_msg.pin()
         print("DEBUG: Start message sent, playing alert")
         
         await player.alert(session)
