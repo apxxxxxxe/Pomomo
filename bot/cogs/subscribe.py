@@ -43,7 +43,7 @@ class Subscribe(commands.Cog):
             await auto_mute.handle_all(interaction)
             # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
             await interaction.followup.send(f'処理が正常に完了しました',)
-            await interaction.followup.send(f'{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True, ephemeral=False)
+            await interaction.followup.send(f'> `{interaction.user.display_name}`さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True, ephemeral=False)
             print("muted all users")
         except Exception as e:
             print(f"DEBUG: Error in enableautomute: {e}")
@@ -78,7 +78,7 @@ class Subscribe(commands.Cog):
             await auto_mute.handle_all(interaction)
             # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
             await interaction.followup.send(f'処理が正常に完了しました',)
-            await interaction.followup.send(f'{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True, ephemeral=False)
+            await interaction.followup.send(f'> `{interaction.user.display_name}`さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True, ephemeral=False)
         except Exception as e:
             print(f"DEBUG: Error in disableautomute: {e}")
             await interaction.followup.send('automute機能の無効化に失敗しました。', ephemeral=True)

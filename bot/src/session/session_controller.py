@@ -35,7 +35,7 @@ async def start(session: Session):
         print("DEBUG: Session activated, sending start message")
         
         embed = msg_builder.settings_embed(session)
-        message = random.choice(u_msg.GREETINGS)
+        message = f'> `{session.ctx.user.display_name}`さんが`/start`を使用しました\n{random.choice(u_msg.GREETINGS)}'
         # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
         await session.ctx.followup.send('処理が正常に完了しました')
         session.bot_start_msg = await session.ctx.followup.send(message, embed=embed, wait=True, silent=True)

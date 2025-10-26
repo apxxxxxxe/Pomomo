@@ -120,7 +120,7 @@ class Control(commands.Cog):
             
             # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
             await interaction.followup.send('処理が正常に完了しました')
-            await interaction.followup.send('セッションを終了しました。', silent=True, ephemeral=False)
+            await interaction.followup.send(f'> `{interaction.user.display_name}`さんが`/stop`を使用しました\nセッションを終了しました。', silent=True, ephemeral=False)
         except Exception as e:
             print(f"DEBUG: Error stopping session: {e}")
             await interaction.followup.send('セッション終了時にエラーが発生しました。', ephemeral=True)
