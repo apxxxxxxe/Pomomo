@@ -18,6 +18,7 @@ class Session:
         self.ctx = ctx
         self.timeout = 0
         self.bot_start_msg = None
+        self.current_session_start_time = None
 
         # Subscriptions
         self.dm = Subscription()

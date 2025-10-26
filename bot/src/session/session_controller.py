@@ -74,8 +74,13 @@ async def end(session: Session):
 
 
 async def run_interval(session: Session) -> bool:
+    import time
+    
     session.timer.running = True
     timer_end = session.timer.end
+    
+    # セッション開始時刻を記録
+    session.current_session_start_time = time.time()
     
     # Pomodoroセッション中の残り時間表示
     if session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:

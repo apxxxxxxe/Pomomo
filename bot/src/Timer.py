@@ -30,22 +30,22 @@ class Timer:
             time_remaining = self.remaining
 
         if time_remaining >= 3600:
-            hours_str = str(int(time_remaining/3600)) + '時間'
+            hours_str = str(round(time_remaining/3600)) + '時間'
             time_remaining_str = hours_str
             if hi_rez:
-                minutes_str = str(int(time_remaining % 3600 / 60)) + '分'
+                minutes_str = str(round(time_remaining % 3600 / 60)) + '分'
                 time_remaining_str += minutes_str
             return time_remaining_str
 
         elif time_remaining >= 60:
-            minutes_str = str(int(time_remaining/60)) + '分'
+            minutes_str = str(round(time_remaining/60)) + '分'
             time_remaining_str = minutes_str
             if hi_rez:
-                seconds_str = str(int(time_remaining % 60)) + '秒'
+                seconds_str = str(round(time_remaining % 60)) + '秒'
                 time_remaining_str += seconds_str
             return time_remaining_str
 
         else:
-            seconds_str = str(int(time_remaining)) + '秒'
+            seconds_str = str(round(time_remaining)) + '秒'
             time_remaining_str = seconds_str
         return time_remaining_str

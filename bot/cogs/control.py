@@ -160,7 +160,7 @@ class Control(commands.Cog):
             if stats.pomos_completed >= 0 and \
                     session.state == bot_enum.State.POMODORO:
                 stats.pomos_completed -= 1
-                stats.minutes_completed -= session.settings.duration
+                stats.seconds_completed -= session.settings.duration * 60
 
             old_state = session.state
             await state_handler.transition(session)

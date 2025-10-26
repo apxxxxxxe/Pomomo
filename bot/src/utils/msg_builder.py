@@ -1,11 +1,13 @@
 from discord import Embed, Colour
 
-from configs import config, help_info
+from configs import config, help_info, bot_enum
 from ..Stats import Stats
 from ..session.Session import Session
 
 
 def settings_embed(session: Session) -> Embed:
+    import time
+    
     settings = session.settings
     settings_str = f'作業時間: {settings.duration} 分\n' \
                f'短い休憩: {settings.short_break} 分\n' \
@@ -14,7 +16,33 @@ def settings_embed(session: Session) -> Embed:
     
     # 残り時間表示を追加
     if session.timer and session.timer.remaining > 0:
-        settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**'
+        # 総進捗秒数を計算（過去完了分 + 現在セッション進捗）
+        total_seconds = session.stats.seconds_completed
+        
+        # 現在セッションの経過時間を計算（作業時間のみ）
+        if session.timer.running and session.state == bot_enum.State.POMODORO:
+            # セッション総時間 - 残り時間 = 経過時間（作業時間のみ）
+            session_total_duration = session.settings.duration * 60
+            
+            current_remaining = session.timer.end - time.time()
+            current_session_elapsed = session_total_duration - current_remaining
+            current_session_elapsed = max(0, round(current_session_elapsed))  # 四捨五入を使用
+            total_seconds += current_session_elapsed
+        
+        # 秒数を「分秒」形式に変換
+        def seconds_to_min_sec_str(seconds):
+            if seconds < 60:
+                return f'{seconds}秒'
+            else:
+                minutes = seconds // 60
+                remaining_seconds = seconds % 60
+                if remaining_seconds == 0:
+                    return f'{minutes}分'
+                else:
+                    return f'{minutes}分{remaining_seconds}秒'
+        
+        progress_str = seconds_to_min_sec_str(total_seconds)
+        settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
     
     embed = Embed(title='作業セッション設定', description=settings_str, colour=Colour.orange())
 
@@ -51,20 +79,30 @@ def help_embed(for_command) -> Embed:
 
 def stats_msg(stats: Stats):
     pomo_str = 'サイクル'
-    minutes_str = '分'
-    hours_str: str
-    time_completed_str: str
-    if stats.minutes_completed >= 60:
-        hours_str = '時間'
-        hours_completed = int(stats.minutes_completed/60)
-        time_completed_str = f'{hours_completed}{hours_str}'
-        minutes_completed = int(stats.minutes_completed % 60)
-        if minutes_completed > 0:
-            time_completed_str += f' {minutes_completed}{minutes_str}'
+    total_seconds = stats.seconds_completed
+    
+    # 秒数を時間、分、秒に変換
+    hours = total_seconds // 3600
+    remaining_seconds = total_seconds % 3600
+    minutes = remaining_seconds // 60
+    seconds = remaining_seconds % 60
+    
+    # 時間表示文字列を構築
+    time_completed_str = ''
+    if hours > 0:
+        time_completed_str += f'{hours}時間'
+        if minutes > 0:
+            time_completed_str += f'{minutes}分'
+    elif minutes > 0:
+        time_completed_str += f'{minutes}分'
+        if seconds > 0:
+            time_completed_str += f'{seconds}秒'
     else:
-        if stats.minutes_completed == 1:
-            minutes_str = 'minute'
-        time_completed_str = f'{stats.minutes_completed}{minutes_str}'
+        if total_seconds == 1:
+            time_completed_str = '1秒'
+        else:
+            time_completed_str = f'{total_seconds}秒'
+    
     if stats.pomos_completed == 1:
         pomo_str = 'pomodoro'
     return f'{stats.pomos_completed}{pomo_str}({time_completed_str})'
