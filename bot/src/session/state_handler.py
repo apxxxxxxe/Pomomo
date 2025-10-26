@@ -17,6 +17,9 @@ async def transition(session: Session):
         else:
             session.state = bot_enum.State.SHORT_BREAK
     elif session.state == bot_enum.State.CLASSWORK:
+        stats = session.stats
+        stats.pomos_completed += 1
+        stats.seconds_completed += session.settings.duration * 60
         session.state = bot_enum.State.CLASSWORK_BREAK
         await session.auto_mute.unmute(session.ctx)
     elif session.state == bot_enum.State.CLASSWORK_BREAK:

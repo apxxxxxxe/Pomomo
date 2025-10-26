@@ -23,7 +23,7 @@ async def send_classwork_msg(session: Session):
     from ..utils import msg_builder
     
     embed = msg_builder.classwork_embed(session)
-    message = f'> -# {session.ctx.user.display_name} さんが`/classwork`を使用しました'
+    message = f'> -# {session.ctx.user.display_name} さんが`/start`を使用しました'
     
     if hasattr(session.ctx, 'send'):  # Context
         session.bot_start_msg = await session.ctx.send(message, embed=embed)

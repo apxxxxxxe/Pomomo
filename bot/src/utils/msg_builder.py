@@ -62,7 +62,7 @@ def classwork_embed(session: Session) -> Embed:
     work_time = session.settings.duration
     break_time = session.settings.short_break
     settings_str = f'作業時間: {work_time} 分\n' \
-               f'休憩時間: {break_time} 分\n'
+               f'休憩時間: {break_time} 分'
     
     # 残り時間表示を追加
     if session.timer and session.timer.remaining > 0:

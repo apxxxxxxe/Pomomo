@@ -125,7 +125,7 @@ class Control(commands.Cog):
                 embed.set_footer(text='終了したセッション')
                 message='またお会いしましょう！ 👋'
                 embed.colour = discord.Colour.green()
-                if session.state == bot_enum.State.POMODORO and session.stats.pomos_completed >= 1:
+                if (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK) and session.stats.pomos_completed >= 1:
                     message='お疲れ様です！ 👋'
                     embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
                 await session.bot_start_msg.edit(content=message, embed=embed)
