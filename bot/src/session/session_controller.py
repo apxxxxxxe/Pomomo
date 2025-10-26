@@ -77,13 +77,14 @@ async def run_interval(session: Session) -> bool:
     import time
     
     session.timer.running = True
+    session.timer.end = time.time() + session.timer.remaining
     timer_end = session.timer.end
     
     # セッション開始時刻を記録
     session.current_session_start_time = time.time()
     
-    # Pomodoroセッション中の残り時間表示
-    if session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
+    # Pomodoro及びClassworkセッション中の残り時間表示
+    if session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK, bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
         while session.timer.remaining > 0:
             await sleep(1)
             s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
@@ -91,7 +92,11 @@ async def run_interval(session: Session) -> bool:
                     s.timer.running and
                     timer_end == s.timer.end):
                 return False
-            await pomodoro.update_msg(session)
+            if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
+                from . import classwork
+                await classwork.update_msg(session)
+            else:
+                await pomodoro.update_msg(session)
     else:
         await sleep(session.timer.remaining)
     
@@ -104,6 +109,8 @@ async def run_interval(session: Session) -> bool:
         if await session_manager.kill_if_idle(session):
             return False
         if session.state == bot_enum.State.POMODORO:
+            await session.auto_mute.unmute(session.ctx)
+        elif session.state == bot_enum.State.CLASSWORK:
             await session.auto_mute.unmute(session.ctx)
         await state_handler.transition(session)
         await player.alert(session)

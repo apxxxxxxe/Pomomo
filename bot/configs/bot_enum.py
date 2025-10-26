@@ -3,6 +3,8 @@ class State:
     SHORT_BREAK = '短い休憩'
     LONG_BREAK = '長い休憩'
     COUNTDOWN = 'カウントダウン'
+    CLASSWORK = '作業中'
+    CLASSWORK_BREAK = '休憩中'
 
 
 class AlertPath:

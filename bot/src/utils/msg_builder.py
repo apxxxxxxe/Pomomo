@@ -44,7 +44,58 @@ def settings_embed(session: Session) -> Embed:
         progress_str = seconds_to_min_sec_str(total_seconds)
         settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
     
-    embed = Embed(title='作業セッション設定', description=settings_str, colour=Colour.orange())
+    embed = Embed(title='作業セッション', description=settings_str, colour=Colour.orange())
+
+    vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
+    if vc:
+        footer = f'{vc.channel.name} ボイスチャンネルに接続中'
+        if session.auto_mute.all:
+            footer += '\nAuto-mute is on'
+        embed.set_footer(text=footer)
+
+    return embed
+
+def classwork_embed(session: Session) -> Embed:
+    import time
+    
+    # CLASSWORKセッションの基本情報（動的時間設定）
+    work_time = session.settings.duration
+    break_time = session.settings.short_break
+    settings_str = f'作業時間: {work_time} 分\n' \
+               f'休憩時間: {break_time} 分\n'
+    
+    # 残り時間表示を追加
+    if session.timer and session.timer.remaining > 0:
+        # 総進捗秒数を計算（過去完了分 + 現在セッション進捗）
+        total_seconds = session.stats.seconds_completed
+        
+        # 現在セッションの経過時間を計算（作業時間のみ）
+        if session.timer.running and session.state == bot_enum.State.CLASSWORK:
+            # セッション総時間 - 残り時間 = 経過時間（作業時間のみ）
+            session_total_duration = work_time * 60  # 動的作業時間
+            
+            current_remaining = session.timer.end - time.time()
+            current_session_elapsed = session_total_duration - current_remaining
+            current_session_elapsed = max(0, round(current_session_elapsed))  # 四捨五入を使用
+            total_seconds += current_session_elapsed
+        
+        # 秒数を「分秒」形式に変換
+        def seconds_to_min_sec_str(seconds):
+            if seconds < 60:
+                return f'{seconds}秒'
+            else:
+                minutes = seconds // 60
+                remaining_seconds = seconds % 60
+                if remaining_seconds == 0:
+                    return f'{minutes}分'
+                else:
+                    return f'{minutes}分{remaining_seconds}秒'
+        
+        progress_str = seconds_to_min_sec_str(total_seconds)
+        
+        settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
+    
+    embed = Embed(title='シンプル作業セッション設定', description=settings_str, colour=Colour.orange())
 
     vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
     if vc:

@@ -16,6 +16,12 @@ async def transition(session: Session):
             session.state = bot_enum.State.LONG_BREAK
         else:
             session.state = bot_enum.State.SHORT_BREAK
+    elif session.state == bot_enum.State.CLASSWORK:
+        session.state = bot_enum.State.CLASSWORK_BREAK
+        await session.auto_mute.unmute(session.ctx)
+    elif session.state == bot_enum.State.CLASSWORK_BREAK:
+        session.state = bot_enum.State.CLASSWORK
+        await session.auto_mute.mute(session.ctx)
     else:
         session.state = bot_enum.State.POMODORO
         await session.auto_mute.mute(session.ctx)

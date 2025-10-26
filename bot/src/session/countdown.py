@@ -40,7 +40,9 @@ async def update_msg(session: Session):
 
 
 async def start(session: Session):
+    import time
     session.timer.running = True
+    session.timer.end = time.time() + session.timer.remaining
     while True:
         time_remaining = session.timer.remaining
         await sleep(1)

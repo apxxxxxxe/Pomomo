@@ -6,7 +6,7 @@ from discord import app_commands
 
 from src.Settings import Settings
 from configs import bot_enum, user_messages as u_msg
-from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro
+from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro, classwork
 from src.session.Session import Session
 from src.utils import player, msg_builder, voice_validation
 from src.voice_client import vc_accessor
@@ -221,6 +221,72 @@ class Control(commands.Cog):
                 await interaction.channel.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
             else:
                 await interaction.response.send_message("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+        else:
+            print(error)
+
+    @app_commands.command(name="classwork", description="シンプルな作業タイマーを開始する")
+    @app_commands.describe(
+        work_time="作業時間（分、デフォルト: 30）",
+        break_time="休憩時間（分、デフォルト: 30）"
+    )
+    async def classwork(self, interaction: discord.Interaction, work_time: int = 30, break_time: int = 30):
+        if not await Settings.is_valid_interaction(interaction, work_time, break_time, 30, 4):
+            await interaction.response.send_message("無効なパラメータです。", ephemeral=True)
+            return
+            
+        if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
+            await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
+            return
+
+        # ユーザーがボイスチャンネルに参加しているかチェック
+        if not interaction.user.voice:
+            await interaction.response.send_message('`/classwork` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            return
+        
+        # ボットの権限チェック
+        voice_channel = interaction.user.voice.channel
+        bot_member = interaction.guild.me
+        
+        if not voice_channel.permissions_for(bot_member).connect:
+            await interaction.response.send_message(f"ボットに {voice_channel.name} への参加権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            return
+        
+        if not voice_channel.permissions_for(bot_member).speak:
+            await interaction.response.send_message(f"ボットに {voice_channel.name} での発言権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            return
+            
+        # 時間のかかる処理開始前にdefer
+        await interaction.response.defer(ephemeral=True)
+        
+        # CLASSWORKセッション作成（カスタム時間設定）
+        # Settings(duration, short_break, long_break, intervals) の形式に合わせる
+        session = Session(bot_enum.State.CLASSWORK,
+                          Settings(work_time, break_time, 30, 1),  # classworkでは long_break, intervals は使わない
+                          interaction,
+                          )
+        
+        try:
+            await classwork.handle_connection(session)
+            session_manager.activate(session)
+            await session_messenger.send_classwork_msg(session)
+            
+            # 開始アラート音を再生
+            await player.alert(session)
+            
+            await classwork.start(session)
+        except Exception as e:
+            print(f"DEBUG: Error starting classwork session: {e}")
+            await interaction.delete_original_response()
+            await interaction.channel.send("シンプル作業セッションの開始に失敗しました。")
+
+    @classwork.error
+    async def classwork_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            if interaction.response.is_done():
+                await interaction.delete_original_response()
+                await interaction.channel.send("classwork_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+            else:
+                await interaction.response.send_message("classwork_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
         else:
             print(error)
 
