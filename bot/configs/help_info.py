@@ -8,7 +8,7 @@ SUMMARY = 'Pomomoは、あなたと友達が一緒に勉強する際の進捗管
 
 POMO_ARGS = 'pomodoro: 作業の時間（分）（デフォルト: 30分）\n' \
             'short_break: 短い休憩の時間（分）（デフォルト: 30分）\n' \
-            'long_break: 長い休憩の時間（分）（デフォルト: 45分）\n' \
+            'long_break: 長い休憩の時間（分）（デフォルト: 30分）\n' \
             'intervals: 長い休憩までのポモドーロ回数（デフォルト: 4回）'
 
 COUNTDOWN_ARGS = '複数単語のタイトルは" "で囲んでください（デフォルト: "Countdown"）。\n' \
