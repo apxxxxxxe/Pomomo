@@ -41,13 +41,14 @@ class Subscribe(commands.Cog):
         
         try:
             await auto_mute.handle_all(interaction)
-            # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
-            await interaction.followup.send(f'処理が正常に完了しました',)
-            await interaction.followup.send(f'> `{interaction.user.display_name}`さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True, ephemeral=False)
+            # defer()によるthinkingメッセージを削除して、チャンネルに送信
+            await interaction.delete_original_response()
+            await interaction.channel.send(f'> `{interaction.user.display_name}`さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
             print("muted all users")
         except Exception as e:
             print(f"DEBUG: Error in enableautomute: {e}")
-            await interaction.followup.send('automute機能の有効化に失敗しました。', ephemeral=True)
+            await interaction.delete_original_response()
+            await interaction.channel.send('automute機能の有効化に失敗しました。', silent=True)
 
     @app_commands.command(name="disableautomute", description="チャンネル内の全メンバーの自動ミュート機能を無効にする")
     async def disableautomute(self, interaction: discord.Interaction):
@@ -76,12 +77,13 @@ class Subscribe(commands.Cog):
         
         try:
             await auto_mute.handle_all(interaction)
-            # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
-            await interaction.followup.send(f'処理が正常に完了しました',)
-            await interaction.followup.send(f'> `{interaction.user.display_name}`さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True, ephemeral=False)
+            # defer()によるthinkingメッセージを削除して、チャンネルに送信
+            await interaction.delete_original_response()
+            await interaction.channel.send(f'> `{interaction.user.display_name}`さんが`/disableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
         except Exception as e:
             print(f"DEBUG: Error in disableautomute: {e}")
-            await interaction.followup.send('automute機能の無効化に失敗しました。', ephemeral=True)
+            await interaction.delete_original_response()
+            await interaction.channel.send('automute機能の無効化に失敗しました。', silent=True)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):

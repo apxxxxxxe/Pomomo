@@ -60,7 +60,8 @@ class Control(commands.Cog):
             await session_controller.start(session)
         except Exception as e:
             print(f"DEBUG: Error starting session: {e}")
-            await interaction.followup.send("セッションの開始に失敗しました。", ephemeral=True)
+            await interaction.delete_original_response()
+            await interaction.channel.send("セッションの開始に失敗しました。")
 
     @start.error
     async def start_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -74,8 +75,9 @@ class Control(commands.Cog):
                 print("DEBUG: Sending start_error_1 message")
                 await interaction.response.send_message("start_error_1:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             else:
-                print("DEBUG: Sending start_error_2 followup message")
-                await interaction.followup.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+                print("DEBUG: Sending start_error_2 message to channel")
+                await interaction.delete_original_response()
+                await interaction.channel.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
         else:
             print(f"DEBUG: Other error type: {type(error)}")
             print(error)
@@ -116,12 +118,13 @@ class Control(commands.Cog):
                     embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
                 await session.bot_start_msg.edit(content=message, embed=embed)
             
-            # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
-            await interaction.followup.send('処理が正常に完了しました')
-            await interaction.followup.send(f'> `{interaction.user.display_name}`さんが`/stop`を使用しました\nセッションを終了しました。', silent=True, ephemeral=False)
+            # defer()によるthinkingメッセージを削除して、silent指定でチャンネルに送信
+            await interaction.delete_original_response()
+            await interaction.channel.send(f'> `{interaction.user.display_name}`さんが`/stop`を使用しました\nセッションを終了しました。', silent=True)
         except Exception as e:
             print(f"DEBUG: Error stopping session: {e}")
-            await interaction.followup.send('セッション終了時にエラーが発生しました。', ephemeral=True)
+            await interaction.delete_original_response()
+            await interaction.channel.send('セッション終了時にエラーが発生しました。', silent=True)
 
     @app_commands.command(name="skip", description="現在のインターバルをスキップする")
     async def skip(self, interaction: discord.Interaction):
@@ -188,7 +191,11 @@ class Control(commands.Cog):
     @countdown.error
     async def countdown_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandInvokeError):
-            await interaction.followup.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.delete_original_response()
+                await interaction.channel.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+            else:
+                await interaction.response.send_message("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
         else:
             print(error)
 

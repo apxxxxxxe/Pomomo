@@ -36,9 +36,9 @@ async def start(session: Session):
         
         embed = msg_builder.settings_embed(session)
         message = f'> `{session.ctx.user.display_name}`さんが`/start`を使用しました\n{random.choice(u_msg.GREETINGS)}'
-        # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
-        await session.ctx.followup.send('処理が正常に完了しました')
-        session.bot_start_msg = await session.ctx.followup.send(message, embed=embed, wait=True, silent=True)
+        # defer()によるthinkingメッセージを削除して、チャンネルに送信
+        await session.ctx.delete_original_response()
+        session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)
         await session.bot_start_msg.pin()
         print("DEBUG: Start message sent, playing alert")
         

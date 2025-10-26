@@ -14,6 +14,7 @@ async def send_countdown_msg(session: Session, title: str):
             await session.ctx.response.send_message(embed=embed)
             session.bot_start_msg = await session.ctx.original_response()
         else:
-            session.bot_start_msg = await session.ctx.followup.send(embed=embed, wait=True, silent=True)
+            await session.ctx.delete_original_response()
+            session.bot_start_msg = await session.ctx.channel.send(embed=embed, silent=True)
     print("countdown message sent")
     await session.bot_start_msg.pin()
