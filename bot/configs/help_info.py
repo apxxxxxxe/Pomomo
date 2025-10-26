@@ -3,8 +3,8 @@ from . import config
 
 SUMMARY = 'Pomomoは、あなたと友達が一緒に勉強する際の進捗管理をサポートします！\n' \
           '集中時間を設定して作業し、休憩時間にチャットを楽しみましょう。\n\n' \
-          f'例えば、\"/start\"でデフォルト値でポモドーロセッションを開始したり、' \
-          f'\"/start 30 10\"で作業時間と短い休憩の時間をカスタマイズできます！\n'
+          f'例えば、\"/pomodoro\"でデフォルト値でポモドーロセッションを開始したり、' \
+          f'\"/pomodoro 30 10\"で作業時間と短い休憩の時間をカスタマイズできます！\n'
 
 POMO_ARGS = 'pomodoro: 作業の時間（分）（デフォルト: 30分）\n' \
             'short_break: 短い休憩の時間（分）（デフォルト: 30分）\n' \
@@ -17,7 +17,7 @@ COUNTDOWN_ARGS = '複数単語のタイトルは" "で囲んでください（�
 
 COMMANDS = {
     'コマンド一覧': {
-        'start': ['/start [pomodoro] [short_break] [long_break] [intervals]',
+        'pomodoro': ['/pomodoro [pomodoro] [short_break] [long_break] [intervals]',
             'オプションのカスタム設定でポモドーロセッションを開始します。\n\n' + POMO_ARGS],
         'skip': ['/skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],
         'stop': ['/stop', 'セッションを終了'],

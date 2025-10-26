@@ -18,15 +18,15 @@ class Control(commands.Cog):
         self.client = client
 
 
-    @app_commands.command(name="start", description="ポモドーロセッションを開始する")
+    @app_commands.command(name="pomodoro", description="ポモドーロセッションを開始する")
     @app_commands.describe(
         pomodoro="作業時間（分、デフォルト: 30）",
         short_break="短い休憩時間（分、デフォルト: 30）",
         long_break="長い休憩時間（分、デフォルト: 30）",
         intervals="長い休憩までの繰り返し数（デフォルト: 4）"
     )
-    async def start(self, interaction: discord.Interaction, pomodoro: int = 30, short_break: int = 30, long_break: int = 30, intervals: int = 4):
-        print(f"DEBUG: start command called with params: pomodoro={pomodoro}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
+    async def pomodoro(self, interaction: discord.Interaction, pomodoro: int = 30, short_break: int = 30, long_break: int = 30, intervals: int = 4):
+        print(f"DEBUG: pomodoro command called with params: pomodoro={pomodoro}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
         
         if not await Settings.is_valid_interaction(interaction, pomodoro, short_break, long_break, intervals):
             print("DEBUG: Settings.is_valid_interaction returned False")
@@ -44,7 +44,7 @@ class Control(commands.Cog):
         
         # ユーザーがボイスチャンネルに参加しているかチェック
         if not interaction.user.voice:
-            await interaction.response.send_message('`/start` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message('`/pomodoro` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
             return
         
         # ボットの権限チェック
@@ -75,21 +75,21 @@ class Control(commands.Cog):
             await interaction.delete_original_response()
             await interaction.channel.send("セッションの開始に失敗しました。")
 
-    @start.error
-    async def start_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        print(f"DEBUG: start_error triggered with error type: {type(error)}")
+    @pomodoro.error
+    async def pomodoro_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        print(f"DEBUG: pomodoro_error triggered with error type: {type(error)}")
         print(f"DEBUG: error content: {error}")
         print(f"DEBUG: interaction.response.is_done(): {interaction.response.is_done()}")
         
         if isinstance(error, app_commands.CommandInvokeError):
             print("DEBUG: CommandInvokeError detected")
             if not interaction.response.is_done():
-                print("DEBUG: Sending start_error_1 message")
-                await interaction.response.send_message("start_error_1:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+                print("DEBUG: Sending pomodoro_error_1 message")
+                await interaction.response.send_message("pomodoro_error_1:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             else:
-                print("DEBUG: Sending start_error_2 message to channel")
+                print("DEBUG: Sending pomodoro_error_2 message to channel")
                 await interaction.delete_original_response()
-                await interaction.channel.send("start_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+                await interaction.channel.send("pomodoro_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
         else:
             print(f"DEBUG: Other error type: {type(error)}")
             print(error)
