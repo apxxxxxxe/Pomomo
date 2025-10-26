@@ -107,15 +107,13 @@ class Control(commands.Cog):
             if session.bot_start_msg:
                 print("editing bot_start_msg...")
                 embed = session.bot_start_msg.embeds[0]
+                embed.description = f'終了：{msg_builder.time_only_msg(session.stats)}'
                 embed.set_footer(text='終了したセッション')
                 message='またお会いしましょう！ 👋'
+                embed.colour = discord.Colour.green()
                 if session.state == bot_enum.State.POMODORO and session.stats.pomos_completed >= 1:
                     message='お疲れ様です！ 👋'
                     embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
-                    embed.colour = discord.Colour.green()
-                else:
-                    embed.description = '中断'
-                    embed.colour = discord.Colour.red()
                 await session.bot_start_msg.edit(content=message, embed=embed)
             
             # silent=True指定のため、2度目のfollowupで本命のメッセージを送る
