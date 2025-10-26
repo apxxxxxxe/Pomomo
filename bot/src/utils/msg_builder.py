@@ -68,19 +68,3 @@ def stats_msg(stats: Stats):
     if stats.pomos_completed == 1:
         pomo_str = 'pomodoro'
     return f'{stats.pomos_completed}{pomo_str}({time_completed_str})'
-
-def time_only_msg(stats: Stats):
-    """経過時間のみを表示する関数"""
-    minutes_str = '分'
-    if stats.minutes_completed >= 60:
-        hours_str = '時間'
-        hours_completed = int(stats.minutes_completed/60)
-        time_completed_str = f'{hours_completed}{hours_str}'
-        minutes_completed = int(stats.minutes_completed % 60)
-        if minutes_completed > 0:
-            time_completed_str += f' {minutes_completed}{minutes_str}'
-    else:
-        if stats.minutes_completed == 1:
-            minutes_str = 'minute'
-        time_completed_str = f'{stats.minutes_completed}{minutes_str}'
-    return time_completed_str

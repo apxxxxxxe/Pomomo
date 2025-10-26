@@ -109,7 +109,7 @@ class Control(commands.Cog):
             if session.bot_start_msg:
                 print("editing bot_start_msg...")
                 embed = session.bot_start_msg.embeds[0]
-                embed.description = f'終了：{msg_builder.time_only_msg(session.stats)}'
+                embed.description = f'終了'
                 embed.set_footer(text='終了したセッション')
                 message='またお会いしましょう！ 👋'
                 embed.colour = discord.Colour.green()
