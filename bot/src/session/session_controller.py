@@ -35,7 +35,7 @@ async def start(session: Session):
         print("DEBUG: Session activated, sending start message")
         
         embed = msg_builder.settings_embed(session)
-        message = f'> `{session.ctx.user.display_name}`さんが`/start`を使用しました\n{random.choice(u_msg.GREETINGS)}'
+        message = f'> -# {session.ctx.user.display_name} さんが`/start`を使用しました\n{random.choice(u_msg.GREETINGS)}'
         # defer()によるthinkingメッセージを削除して、チャンネルに送信
         await session.ctx.delete_original_response()
         session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)

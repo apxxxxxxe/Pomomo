@@ -43,7 +43,7 @@ class Subscribe(commands.Cog):
             await auto_mute.handle_all(interaction)
             # defer()によるthinkingメッセージを削除して、チャンネルに送信
             await interaction.delete_original_response()
-            await interaction.channel.send(f'> `{interaction.user.display_name}`さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
+            await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
             print("muted all users")
         except Exception as e:
             print(f"DEBUG: Error in enableautomute: {e}")
@@ -79,7 +79,7 @@ class Subscribe(commands.Cog):
             await auto_mute.handle_all(interaction)
             # defer()によるthinkingメッセージを削除して、チャンネルに送信
             await interaction.delete_original_response()
-            await interaction.channel.send(f'> `{interaction.user.display_name}`さんが`/disableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
+            await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/disableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
         except Exception as e:
             print(f"DEBUG: Error in disableautomute: {e}")
             await interaction.delete_original_response()

@@ -120,7 +120,7 @@ class Control(commands.Cog):
             
             # defer()によるthinkingメッセージを削除して、silent指定でチャンネルに送信
             await interaction.delete_original_response()
-            await interaction.channel.send(f'> `{interaction.user.display_name}`さんが`/stop`を使用しました\nセッションを終了しました。', silent=True)
+            await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/stop`を使用しました\nセッションを終了しました。', silent=True)
         except Exception as e:
             print(f"DEBUG: Error stopping session: {e}")
             await interaction.delete_original_response()
