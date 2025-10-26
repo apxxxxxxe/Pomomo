@@ -17,6 +17,10 @@ COUNTDOWN_ARGS = '複数単語のタイトルは" "で囲んでください（�
 
 COMMANDS = {
     'コマンド一覧': {
+        'start': ['/start [work_time] [break_time]',
+            'シンプルな作業タイマーを開始します。\n\n' + 
+            'work_time: 作業時間（分）（デフォルト: 30分）\n' +
+            'break_time: 休憩時間（分）（デフォルト: 30分）'],
         'pomodoro': ['/pomodoro [pomodoro] [short_break] [long_break] [intervals]',
             'オプションのカスタム設定でポモドーロセッションを開始します。\n\n' + POMO_ARGS],
         'skip': ['/skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],

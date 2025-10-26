@@ -224,7 +224,7 @@ class Control(commands.Cog):
         else:
             print(error)
 
-    @app_commands.command(name="classwork", description="シンプルな作業タイマーを開始する")
+    @app_commands.command(name="start", description="シンプルな作業タイマーを開始する")
     @app_commands.describe(
         work_time="作業時間（分、デフォルト: 30）",
         break_time="休憩時間（分、デフォルト: 30）"
@@ -240,7 +240,7 @@ class Control(commands.Cog):
 
         # ユーザーがボイスチャンネルに参加しているかチェック
         if not interaction.user.voice:
-            await interaction.response.send_message('`/classwork` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message('`/start` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
             return
         
         # ボットの権限チェック

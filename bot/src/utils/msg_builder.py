@@ -95,7 +95,7 @@ def classwork_embed(session: Session) -> Embed:
         
         settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
     
-    embed = Embed(title='シンプル作業セッション設定', description=settings_str, colour=Colour.orange())
+    embed = Embed(title='作業セッション', description=settings_str, colour=Colour.orange())
 
     vc = getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client
     if vc:
