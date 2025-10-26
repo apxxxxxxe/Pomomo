@@ -42,12 +42,24 @@ class Control(commands.Cog):
             
         print("DEBUG: No active session found")
         
-        if not await voice_validation.require_voice_channel(interaction):
-            print("DEBUG: User not in voice channel")
+        # ユーザーがボイスチャンネルに参加しているかチェック
+        if not interaction.user.voice:
             await interaction.response.send_message('`/start` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
             return
+        
+        # ボットの権限チェック
+        voice_channel = interaction.user.voice.channel
+        bot_member = interaction.guild.me
+        
+        if not voice_channel.permissions_for(bot_member).connect:
+            await interaction.response.send_message(f"ボットに {voice_channel.name} への参加権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            return
+        
+        if not voice_channel.permissions_for(bot_member).speak:
+            await interaction.response.send_message(f"ボットに {voice_channel.name} での発言権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            return
             
-        print("DEBUG: User in voice channel, creating session")
+        print("DEBUG: Voice permission check passed, creating session")
 
         # 時間のかかる処理開始前にdefer
         await interaction.response.defer(ephemeral=True)
@@ -175,8 +187,21 @@ class Control(commands.Cog):
             await interaction.response.send_message("countdown:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
             return
 
-        if not await voice_validation.require_voice_channel(interaction):
+        # ユーザーがボイスチャンネルに参加しているかチェック
+        if not interaction.user.voice:
             await interaction.response.send_message('`/countdown` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            return
+        
+        # ボットの権限チェック
+        voice_channel = interaction.user.voice.channel
+        bot_member = interaction.guild.me
+        
+        if not voice_channel.permissions_for(bot_member).connect:
+            await interaction.response.send_message(f"ボットに {voice_channel.name} への参加権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            return
+        
+        if not voice_channel.permissions_for(bot_member).speak:
+            await interaction.response.send_message(f"ボットに {voice_channel.name} での発言権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
             return
             
         session = Session(bot_enum.State.COUNTDOWN,
