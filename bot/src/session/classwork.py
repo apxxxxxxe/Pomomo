@@ -66,6 +66,10 @@ async def start(session: Session):
     import time
     session.timer.running = True
     session.timer.end = time.time() + session.timer.remaining
+    
+    # セッション開始時刻を記録
+    session.current_session_start_time = time.time()
+    
     while True:
         time_remaining = session.timer.remaining
         await sleep(1)

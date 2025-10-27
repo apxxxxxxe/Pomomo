@@ -115,6 +115,24 @@ class Control(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         
         try:
+            print(f"DEBUG stop: session.state = {session.state}")
+            print(f"DEBUG stop: session.current_session_start_time = {session.current_session_start_time}")
+            print(f"DEBUG stop: session.stats.seconds_completed (before) = {session.stats.seconds_completed}")
+            
+            # セッション終了前に現在の経過時間を計算して統計に追加
+            if session.current_session_start_time and (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK):
+                import time
+                current_elapsed = int(time.time() - session.current_session_start_time)
+                print(f"DEBUG stop: current_elapsed = {current_elapsed}")
+                session.stats.seconds_completed += current_elapsed
+                print(f"DEBUG stop: session.stats.seconds_completed (after) = {session.stats.seconds_completed}")
+            else:
+                print("DEBUG stop: Not adding current elapsed time")
+                if not session.current_session_start_time:
+                    print("DEBUG stop: current_session_start_time is None")
+                if session.state != bot_enum.State.POMODORO and session.state != bot_enum.State.CLASSWORK:
+                    print(f"DEBUG stop: state is not work state: {session.state}")
+            
             await session_controller.end(session)
 
             # start_msgを条件に応じて書き換え
@@ -125,7 +143,7 @@ class Control(commands.Cog):
                 embed.set_footer(text='終了したセッション')
                 message='またお会いしましょう！ 👋'
                 embed.colour = discord.Colour.green()
-                if (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK) and session.stats.pomos_completed >= 1:
+                if (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK):
                     message='お疲れ様です！ 👋'
                     embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
                 await session.bot_start_msg.edit(content=message, embed=embed)

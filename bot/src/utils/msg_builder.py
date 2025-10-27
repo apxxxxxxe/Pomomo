@@ -128,9 +128,17 @@ def help_embed(for_command) -> Embed:
         return Embed(title='Error', description='No help found for that command.', colour=Colour.red())
 
 
-def stats_msg(stats: Stats):
+def stats_msg(stats: Stats, session=None):
+    import time
+    
     pomo_str = 'サイクル'
     total_seconds = stats.seconds_completed
+    
+    # 作業中の場合、現在の経過時間も含める
+    if session and session.current_session_start_time:
+        if session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK:
+            current_elapsed = int(time.time() - session.current_session_start_time)
+            total_seconds += current_elapsed
     
     # 秒数を時間、分、秒に変換
     hours = total_seconds // 3600
