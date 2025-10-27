@@ -20,12 +20,12 @@ class Control(commands.Cog):
 
     @app_commands.command(name="pomodoro", description="ポモドーロセッションを開始する")
     @app_commands.describe(
-        pomodoro="作業時間（分、デフォルト: 30）",
-        short_break="短い休憩時間（分、デフォルト: 30）",
-        long_break="長い休憩時間（分、デフォルト: 30）",
+        pomodoro="作業時間（分、デフォルト: 25）",
+        short_break="短い休憩時間（分、デフォルト: 5）",
+        long_break="長い休憩時間（分、デフォルト: 20）",
         intervals="長い休憩までの繰り返し数（デフォルト: 4）"
     )
-    async def pomodoro(self, interaction: discord.Interaction, pomodoro: int = 30, short_break: int = 30, long_break: int = 30, intervals: int = 4):
+    async def pomodoro(self, interaction: discord.Interaction, pomodoro: int = 25, short_break: int = 5, long_break: int = 20, intervals: int = 4):
         print(f"DEBUG: pomodoro command called with params: pomodoro={pomodoro}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
         
         if not await Settings.is_valid_interaction(interaction, pomodoro, short_break, long_break, intervals):
