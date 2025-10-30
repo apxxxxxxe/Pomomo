@@ -69,7 +69,7 @@ class Control(commands.Cog):
                           )
         print("DEBUG: Session created, starting session controller")
         try:
-            await session_controller.start(session)
+            await session_controller.start_pomodoro(session)
         except Exception as e:
             print(f"DEBUG: Error starting session: {e}")
             await interaction.delete_original_response()

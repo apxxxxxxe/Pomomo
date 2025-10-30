@@ -1,5 +1,5 @@
 class State:
-    POMODORO = '作業中'
+    POMODORO = 'ポモドーロ作業中'
     SHORT_BREAK = '短い休憩'
     LONG_BREAK = '長い休憩'
     COUNTDOWN = 'カウントダウン'

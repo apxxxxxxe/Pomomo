@@ -21,7 +21,7 @@ async def resume(session: Session):
             break
 
 
-async def start(session: Session):
+async def start_pomodoro(session: Session):
     # response.defer(ephemeral=True)の後に呼ばれる前提
     print("DEBUG: session_controller.start called")
     try:
@@ -95,7 +95,7 @@ async def run_interval(session: Session) -> bool:
             if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
                 from . import classwork
                 await classwork.update_msg(session)
-            else:
+            elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
                 await pomodoro.update_msg(session)
     else:
         await sleep(session.timer.remaining)
