@@ -42,7 +42,7 @@ def settings_embed(session: Session) -> Embed:
                     return f'{minutes}分{remaining_seconds}秒'
         
         progress_str = seconds_to_min_sec_str(total_seconds)
-        settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
+        settings_str += f'\n\n現在: **{bot_enum.State.get_display_name(session.state)}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
     
     embed = Embed(title='作業セッション', description=settings_str, colour=Colour.orange())
 
@@ -93,7 +93,7 @@ def classwork_embed(session: Session) -> Embed:
         
         progress_str = seconds_to_min_sec_str(total_seconds)
         
-        settings_str += f'\n\n現在: **{session.state}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
+        settings_str += f'\n\n現在: **{bot_enum.State.get_display_name(session.state)}**\n残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**\n累計サイクル数: **{session.stats.pomos_completed}**\n累計作業時間: **{progress_str}**'
     
     embed = Embed(title='作業セッション', description=settings_str, colour=Colour.orange())
 

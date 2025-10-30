@@ -1,10 +1,25 @@
 class State:
-    POMODORO = 'ポモドーロ作業中'
-    SHORT_BREAK = '短い休憩'
-    LONG_BREAK = '長い休憩'
-    COUNTDOWN = 'カウントダウン'
-    CLASSWORK = '作業中'
-    CLASSWORK_BREAK = '休憩中'
+    # 内部定数（一意性を保証）
+    POMODORO = 'POMODORO'
+    SHORT_BREAK = 'SHORT_BREAK'
+    LONG_BREAK = 'LONG_BREAK'
+    COUNTDOWN = 'COUNTDOWN'
+    CLASSWORK = 'CLASSWORK'
+    CLASSWORK_BREAK = 'CLASSWORK_BREAK'
+    
+    # 表示用文字列マッピング
+    DISPLAY_NAMES = {
+        'POMODORO': '作業中',
+        'SHORT_BREAK': '短い休憩',
+        'LONG_BREAK': '長い休憩',
+        'COUNTDOWN': 'カウントダウン',
+        'CLASSWORK': '作業中',
+        'CLASSWORK_BREAK': '休憩中'
+    }
+    
+    @classmethod
+    def get_display_name(cls, state):
+        return cls.DISPLAY_NAMES.get(state, state)
 
 
 class AlertPath:

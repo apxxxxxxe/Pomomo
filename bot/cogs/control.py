@@ -182,7 +182,7 @@ class Control(commands.Cog):
 
             old_state = session.state
             await state_handler.transition(session)
-            await interaction.response.send_message(f'{old_state}をスキップし、{session.state}を開始します。')
+            await interaction.response.send_message(f'{bot_enum.State.get_display_name(old_state)}をスキップし、{bot_enum.State.get_display_name(session.state)}を開始します。')
             await player.alert(session)
             await session_controller.resume(session)
         else:

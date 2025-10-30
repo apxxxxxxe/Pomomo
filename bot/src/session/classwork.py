@@ -27,7 +27,7 @@ async def update_msg(session: Session):
         embed = msg_builder.classwork_embed(session)
         embed.colour = Colour.green()
         # ステート表示を終了メッセージに更新
-        embed.description = embed.description.replace(f'現在: **{session.state}**', '現在: **終了!**')
+        embed.description = embed.description.replace(f'現在: **{bot_enum.State.get_display_name(session.state)}**', '現在: **終了!**')
         embed.description = embed.description.replace(f'残り時間: **{session.timer.time_remaining_to_str(hi_rez=True)}**', '残り時間: **終了!**')
         
         await classwork_msg.edit(embed=embed)
