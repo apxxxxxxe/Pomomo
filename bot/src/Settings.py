@@ -34,10 +34,7 @@ class Settings:
         
         print(f"DEBUG: duration_valid={duration_valid}, short_break_valid={short_break_valid}, long_break_valid={long_break_valid}, intervals_valid={intervals_valid}")
         
-        if duration_valid and short_break_valid and long_break_valid and intervals_valid:
-            print("DEBUG: All validations passed")
-            return True
-            
-        print("DEBUG: Validation failed, sending error message")
-        await interaction.response.send_message(u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
-        return False
+        is_valid = duration_valid and short_break_valid and long_break_valid and intervals_valid
+        print(f"DEBUG: validation result: {is_valid}")
+        
+        return is_valid

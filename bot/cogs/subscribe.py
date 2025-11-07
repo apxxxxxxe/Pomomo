@@ -6,7 +6,7 @@ from discord import app_commands, HTTPException
 from src.session import session_manager
 from src.voice_client import vc_accessor as vc_accessor, vc_manager as vc_manager
 from src.utils import voice_validation
-from configs import bot_enum
+from configs import bot_enum, user_messages as u_msg
 
 
 class Subscribe(commands.Cog):
@@ -18,22 +18,22 @@ class Subscribe(commands.Cog):
     async def enableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if not session:
-            await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
+            await interaction.response.send_message(u_msg.NO_ACTIVE_SESSION_ERR, ephemeral=True)
             return
             
         if not vc_accessor.get_voice_channel_interaction(interaction):
-            await interaction.response.send_message('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
+            await interaction.response.send_message(u_msg.AUTOMUTE_REQUIRES_BOT_IN_VC, ephemeral=True)
             return
             
         channel_name = vc_accessor.get_voice_channel(session.ctx).name
         if not await voice_validation.require_same_voice_channel(interaction):
             bot_name = interaction.client.user.display_name
-            await interaction.response.send_message(f'`/enableautomute` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message(u_msg.SAME_VOICE_CHANNEL_REQUIRED_ERR.format(command='/enableautomute', bot_name=bot_name, channel_name=channel_name), ephemeral=True)
             return
             
         auto_mute = session.auto_mute
         if auto_mute.all:
-            await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオンです', ephemeral=True)
+            await interaction.response.send_message(u_msg.AUTOMUTE_ALREADY_ENABLED.format(channel_name=channel_name), ephemeral=True)
             return
         
         # 時間のかかる処理開始前にdefer
@@ -48,28 +48,28 @@ class Subscribe(commands.Cog):
         except Exception as e:
             print(f"DEBUG: Error in enableautomute: {e}")
             await interaction.delete_original_response()
-            await interaction.channel.send('automute機能の有効化に失敗しました。', silent=True)
+            await interaction.channel.send(u_msg.AUTOMUTE_ENABLE_FAILED, silent=True)
 
     @app_commands.command(name="disableautomute", description="チャンネル内の全メンバーの自動ミュート機能を無効にする")
     async def disableautomute(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if not session:
-            await interaction.response.send_message('アクティブなセッションがありません。', ephemeral=True)
+            await interaction.response.send_message(u_msg.NO_ACTIVE_SESSION_ERR, ephemeral=True)
             return
             
         if not vc_accessor.get_voice_channel_interaction(interaction):
-            await interaction.response.send_message('automuteを使用するにはPomomoが音声チャンネルにいる必要があります。', ephemeral=True)
+            await interaction.response.send_message(u_msg.AUTOMUTE_REQUIRES_BOT_IN_VC, ephemeral=True)
             return
             
         channel_name = vc_accessor.get_voice_channel(session.ctx).name
         if not await voice_validation.require_same_voice_channel(interaction):
             bot_name = interaction.client.user.display_name
-            await interaction.response.send_message(f'`/enableautomute` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message(u_msg.SAME_VOICE_CHANNEL_REQUIRED_ERR.format(command='/disableautomute', bot_name=bot_name, channel_name=channel_name), ephemeral=True)
             return
             
         auto_mute = session.auto_mute
         if not auto_mute.all:
-            await interaction.response.send_message(f'{channel_name}ボイスチャンネルのautomuteは既にオフです', ephemeral=True)
+            await interaction.response.send_message(u_msg.AUTOMUTE_ALREADY_DISABLED.format(channel_name=channel_name), ephemeral=True)
             return
         
         # 時間のかかる処理開始前にdefer
@@ -83,7 +83,7 @@ class Subscribe(commands.Cog):
         except Exception as e:
             print(f"DEBUG: Error in disableautomute: {e}")
             await interaction.delete_original_response()
-            await interaction.channel.send('automute機能の無効化に失敗しました。', silent=True)
+            await interaction.channel.send(u_msg.AUTOMUTE_DISABLE_FAILED, silent=True)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):

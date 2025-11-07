@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord import app_commands
 
 from src.Settings import Settings
-from configs import bot_enum, user_messages as u_msg
+from configs import bot_enum, user_messages as u_msg, config
 from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro, classwork
 from src.session.Session import Session
 from src.utils import player, msg_builder, voice_validation
@@ -30,7 +30,7 @@ class Control(commands.Cog):
         
         if not await Settings.is_valid_interaction(interaction, pomodoro, short_break, long_break, intervals):
             print("DEBUG: Settings.is_valid_interaction returned False")
-            await interaction.response.send_message("無効なパラメータです。", ephemeral=True)
+            await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
             return
             
         print("DEBUG: Settings validation passed")
@@ -44,7 +44,7 @@ class Control(commands.Cog):
         
         # ユーザーがボイスチャンネルに参加しているかチェック
         if not interaction.user.voice:
-            await interaction.response.send_message('`/pomodoro` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
             return
         
         # ボットの権限チェック
@@ -52,11 +52,11 @@ class Control(commands.Cog):
         bot_member = interaction.guild.me
         
         if not voice_channel.permissions_for(bot_member).connect:
-            await interaction.response.send_message(f"ボットに {voice_channel.name} への参加権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
             return
         
         if not voice_channel.permissions_for(bot_member).speak:
-            await interaction.response.send_message(f"ボットに {voice_channel.name} での発言権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
             return
             
         print("DEBUG: Voice permission check passed, creating session")
@@ -73,7 +73,7 @@ class Control(commands.Cog):
         except Exception as e:
             print(f"DEBUG: Error starting session: {e}")
             await interaction.delete_original_response()
-            await interaction.channel.send("セッションの開始に失敗しました。")
+            await interaction.channel.send(u_msg.POMODORO_START_FAILED)
 
     @pomodoro.error
     async def pomodoro_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -81,24 +81,33 @@ class Control(commands.Cog):
         print(f"DEBUG: error content: {error}")
         print(f"DEBUG: interaction.response.is_done(): {interaction.response.is_done()}")
         
-        if isinstance(error, app_commands.CommandInvokeError):
-            print("DEBUG: CommandInvokeError detected")
-            if not interaction.response.is_done():
-                print("DEBUG: Sending pomodoro_error_1 message")
-                await interaction.response.send_message("pomodoro_error_1:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+        try:
+            if isinstance(error, app_commands.CommandInvokeError):
+                # システムエラーとして扱う
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.POMODORO_START_FAILED, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.POMODORO_START_FAILED, ephemeral=True)
+            elif isinstance(error, app_commands.TransformError):
+                # パラメータ変換エラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
             else:
-                print("DEBUG: Sending pomodoro_error_2 message to channel")
-                await interaction.delete_original_response()
-                await interaction.channel.send("pomodoro_error_2:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
-        else:
-            print(f"DEBUG: Other error type: {type(error)}")
-            print(error)
+                # その他のエラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.POMODORO_START_FAILED, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.POMODORO_START_FAILED, ephemeral=True)
+        except Exception as e:
+            print(f"DEBUG: Error in pomodoro error handler: {e}")
 
     @app_commands.command(name="stop", description="現在のポモドーロセッションを停止する")
     async def stop(self, interaction: discord.Interaction):
         session = await session_manager.get_session_interaction(interaction)
         if not session:
-            await interaction.response.send_message('停止するアクティブなセッションがありません。', ephemeral=True)
+            await interaction.response.send_message(u_msg.NO_SESSION_TO_STOP, ephemeral=True)
             return
             
         if not await voice_validation.require_same_voice_channel(interaction):
@@ -106,9 +115,9 @@ class Control(commands.Cog):
             if guild and guild.voice_client:
                 bot_name = interaction.client.user.display_name
                 channel_name = guild.voice_client.channel.name
-                await interaction.response.send_message(f'`/stop` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+                await interaction.response.send_message(u_msg.SAME_VOICE_CHANNEL_REQUIRED_ERR.format(command="/stop", bot_name=bot_name, channel_name=channel_name), ephemeral=True)
             else:
-                await interaction.response.send_message('`/stop` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+                await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
             return
         
         # 時間のかかる処理開始前にdefer
@@ -154,7 +163,7 @@ class Control(commands.Cog):
         except Exception as e:
             print(f"DEBUG: Error stopping session: {e}")
             await interaction.delete_original_response()
-            await interaction.channel.send('セッション終了時にエラーが発生しました。', silent=True)
+            await interaction.channel.send(u_msg.SESSION_STOP_FAILED, silent=True)
 
     @app_commands.command(name="skip", description="現在のインターバルをスキップする")
     async def skip(self, interaction: discord.Interaction):
@@ -165,13 +174,13 @@ class Control(commands.Cog):
                 if guild and guild.voice_client:
                     bot_name = interaction.client.user.display_name
                     channel_name = guild.voice_client.channel.name
-                    await interaction.response.send_message(f'`/skip` コマンドは `{bot_name}` と同じボイスチャンネル `{channel_name}` に参加してから実行してください', ephemeral=True)
+                    await interaction.response.send_message(u_msg.SAME_VOICE_CHANNEL_REQUIRED_ERR.format(command="/skip", bot_name=bot_name, channel_name=channel_name), ephemeral=True)
                 else:
-                    await interaction.response.send_message('`/skip` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+                    await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
                 return
             
             if session.state == bot_enum.State.COUNTDOWN:
-                await interaction.response.send_message(f'カウントダウンはスキップできません。終了するには`/stop`を使用してください。', ephemeral=True)
+                await interaction.response.send_message(u_msg.COUNTDOWN_SKIP_NOT_ALLOWED, ephemeral=True)
                 return
                 
             stats = session.stats
@@ -186,7 +195,7 @@ class Control(commands.Cog):
             await player.alert(session)
             await session_controller.resume(session)
         else:
-            await interaction.response.send_message('スキップするセッションがありません。', ephemeral=True)
+            await interaction.response.send_message(u_msg.NO_SESSION_TO_SKIP, ephemeral=True)
 
     @app_commands.command(name="countdown", description="カウントダウンタイマーを開始する")
     @app_commands.describe(
@@ -198,16 +207,16 @@ class Control(commands.Cog):
         session = session_manager.active_sessions.get(session_manager.session_id_from(interaction))
         if session:
             session_vc = vc_accessor.get_voice_channel(session.ctx)
-            await interaction.response.send_message(f'アクティブなセッションが{session_vc.name}で実行中です。\nカウントダウンを開始する前に、まず停止してください。', ephemeral=True)
+            await interaction.response.send_message(u_msg.ACTIVE_SESSION_IN_CHANNEL.format(channel_name=session_vc.name), ephemeral=True)
             return
 
         if not 0 < duration <= 180:
-            await interaction.response.send_message("countdown:" + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
+            await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=180), ephemeral=True)
             return
 
         # ユーザーがボイスチャンネルに参加しているかチェック
         if not interaction.user.voice:
-            await interaction.response.send_message('`/countdown` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
             return
         
         # ボットの権限チェック
@@ -215,11 +224,11 @@ class Control(commands.Cog):
         bot_member = interaction.guild.me
         
         if not voice_channel.permissions_for(bot_member).connect:
-            await interaction.response.send_message(f"ボットに {voice_channel.name} への参加権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
             return
         
         if not voice_channel.permissions_for(bot_member).speak:
-            await interaction.response.send_message(f"ボットに {voice_channel.name} での発言権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
             return
             
         session = Session(bot_enum.State.COUNTDOWN,
@@ -233,14 +242,29 @@ class Control(commands.Cog):
 
     @countdown.error
     async def countdown_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.CommandInvokeError):
-            if interaction.response.is_done():
-                await interaction.delete_original_response()
-                await interaction.channel.send("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+        print(f"DEBUG: countdown_error triggered with error type: {type(error)}")
+        
+        try:
+            if isinstance(error, app_commands.CommandInvokeError):
+                # システムエラーとして扱う
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.COUNTDOWN_START_FAILED, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.COUNTDOWN_START_FAILED, ephemeral=True)
+            elif isinstance(error, app_commands.TransformError):
+                # パラメータ変換エラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=180), ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.INVALID_DURATION_ERR.format(max_minutes=180), ephemeral=True)
             else:
-                await interaction.response.send_message("countdown_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
-        else:
-            print(error)
+                # その他のエラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.COUNTDOWN_START_FAILED, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.COUNTDOWN_START_FAILED, ephemeral=True)
+        except Exception as e:
+            print(f"DEBUG: Error in countdown error handler: {e}")
 
     @app_commands.command(name="start", description="シンプルな作業タイマーを開始する")
     @app_commands.describe(
@@ -249,7 +273,7 @@ class Control(commands.Cog):
     )
     async def classwork(self, interaction: discord.Interaction, work_time: int = 30, break_time: int = 30):
         if not await Settings.is_valid_interaction(interaction, work_time, break_time, 30, 4):
-            await interaction.response.send_message("無効なパラメータです。", ephemeral=True)
+            await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
             return
             
         if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
@@ -258,7 +282,7 @@ class Control(commands.Cog):
 
         # ユーザーがボイスチャンネルに参加しているかチェック
         if not interaction.user.voice:
-            await interaction.response.send_message('`/start` コマンドはボイスチャンネルに参加してから実行してください', ephemeral=True)
+            await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
             return
         
         # ボットの権限チェック
@@ -266,11 +290,11 @@ class Control(commands.Cog):
         bot_member = interaction.guild.me
         
         if not voice_channel.permissions_for(bot_member).connect:
-            await interaction.response.send_message(f"ボットに {voice_channel.name} への参加権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
             return
         
         if not voice_channel.permissions_for(bot_member).speak:
-            await interaction.response.send_message(f"ボットに {voice_channel.name} での発言権限がありません。チャンネルの権限設定を確認してください。", ephemeral=True)
+            await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
             return
             
         # 時間のかかる処理開始前にdefer
@@ -295,18 +319,33 @@ class Control(commands.Cog):
         except Exception as e:
             print(f"DEBUG: Error starting classwork session: {e}")
             await interaction.delete_original_response()
-            await interaction.channel.send("シンプル作業セッションの開始に失敗しました。")
+            await interaction.channel.send(u_msg.START_SESSION_FAILED)
 
     @classwork.error
     async def classwork_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.CommandInvokeError):
-            if interaction.response.is_done():
-                await interaction.delete_original_response()
-                await interaction.channel.send("classwork_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR)
+        print(f"DEBUG: classwork_error triggered with error type: {type(error)}")
+        
+        try:
+            if isinstance(error, app_commands.CommandInvokeError):
+                # システムエラーとして扱う
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.START_SESSION_FAILED, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.START_SESSION_FAILED, ephemeral=True)
+            elif isinstance(error, app_commands.TransformError):
+                # パラメータ変換エラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
             else:
-                await interaction.response.send_message("classwork_error: " + u_msg.NUM_OUTSIDE_ONE_AND_MAX_INTERVAL_ERR, ephemeral=True)
-        else:
-            print(error)
+                # その他のエラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.START_SESSION_FAILED, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.START_SESSION_FAILED, ephemeral=True)
+        except Exception as e:
+            print(f"DEBUG: Error in classwork error handler: {e}")
 
 
 async def setup(client):

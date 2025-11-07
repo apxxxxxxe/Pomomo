@@ -21,7 +21,27 @@ class Info(commands.Cog):
         if help_embed:
             await interaction.response.send_message(embed=help_embed)
         else:
-            await interaction.response.send_message('有効なコマンドを入力してください。')
+            await interaction.response.send_message(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
+
+    @help.error
+    async def help_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        print(f"DEBUG: help_error triggered with error type: {type(error)}")
+        
+        try:
+            if isinstance(error, app_commands.CommandInvokeError):
+                # システムエラーとして扱う
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
+            else:
+                # その他のエラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
+        except Exception as e:
+            print(f"DEBUG: Error in help error handler: {e}")
 
 async def setup(client):
     await client.add_cog(Info(client))
