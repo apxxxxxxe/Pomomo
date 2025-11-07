@@ -290,8 +290,8 @@ class Control(commands.Cog):
             
             # 開始アラート音を再生
             await player.alert(session)
-            
-            await classwork.start(session)
+
+            await session_controller.resume(session)
         except Exception as e:
             print(f"DEBUG: Error starting classwork session: {e}")
             await interaction.delete_original_response()
