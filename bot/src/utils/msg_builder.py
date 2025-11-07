@@ -162,6 +162,4 @@ def stats_msg(stats: Stats, session=None):
         else:
             time_completed_str = f'{total_seconds}秒'
     
-    if stats.pomos_completed == 1:
-        pomo_str = 'pomodoro'
     return f'{stats.pomos_completed}{pomo_str}({time_completed_str})'
