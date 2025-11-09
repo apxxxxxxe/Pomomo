@@ -67,7 +67,9 @@ async def cleanup_pins(session: Session):
 async def end(session: Session):
     ctx = session.ctx
     await cleanup_pins(session)
-    await session.auto_mute.unmute(ctx)
+    # mute モードでない場合のみ unmute を実行
+    if not getattr(session, 'is_muted_mode', False):
+        await session.auto_mute.unmute(ctx)
     if vc_accessor.get_voice_client(ctx):
         await vc_manager.disconnect(session)
     session_manager.deactivate(session)

@@ -14,6 +14,8 @@ async def handle_connection(session: Session, audio_alert: str):
 		# ボイスチャンネルに接続されていない場合、接続を試みる
         await vc_manager.connect(session)
     else:
+        # mute モードの場合、ボイスチャンネルから切断し、フラグを設定
+        session.is_muted_mode = True
         vc = vc_accessor.get_voice_client(session.ctx)
         if vc:
             await vc.disconnect()
@@ -29,7 +31,9 @@ async def update_msg(session: Session):
     if timer.remaining < 0:
         embed.colour = Colour.red()
         embed.description = '終了!'
-        await session.auto_mute.unmute(session.ctx)
+        # mute モードでない場合のみ unmute を実行
+        if not getattr(session, 'is_muted_mode', False):
+            await session.auto_mute.unmute(session.ctx)
         await countdown_msg.edit(embed=embed)
         await session.dm.send_dm(embed=embed)
         await player.alert(session)
