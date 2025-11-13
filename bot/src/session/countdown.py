@@ -9,6 +9,7 @@ from . import session_manager, session_controller
 from .Session import Session
 from ..utils import player
 from configs.logging_config import get_logger
+from configs.config import MESSAGE_UPDATE_INTERVAL_SECONDS
 
 logger = get_logger(__name__)
 
@@ -62,6 +63,7 @@ async def start(session: Session):
         logger.info(f"Starting countdown for guild {session.ctx.guild.id}")
         session.timer.running = True
         session.timer.end = time.time() + session.timer.remaining
+        last_update = 0
         while True:
             time_remaining = session.timer.remaining
             await sleep(1)
@@ -70,7 +72,11 @@ async def start(session: Session):
                     session.timer.running and
                     time_remaining == session.timer.remaining):
                 break
-            await update_msg(session)
+            # メッセージ更新間隔に従って更新
+            current_time = time.time()
+            if current_time - last_update >= MESSAGE_UPDATE_INTERVAL_SECONDS:
+                await update_msg(session)
+                last_update = current_time
     except Exception as e:
         logger.error(f"Error in countdown start: {e}")
         logger.exception("Exception details:")

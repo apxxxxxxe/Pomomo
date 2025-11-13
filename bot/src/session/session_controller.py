@@ -10,6 +10,7 @@ from ..utils import player, msg_builder
 from ..voice_client import vc_accessor, vc_manager
 from configs import config, bot_enum, user_messages as u_msg
 from configs.logging_config import get_logger
+from configs.config import MESSAGE_UPDATE_INTERVAL_SECONDS
 
 logger = get_logger(__name__)
 
@@ -93,6 +94,7 @@ async def run_interval(session: Session) -> bool:
     
     # Pomodoro及びClassworkセッション中の残り時間表示
     if session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK, bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
+        last_update = 0
         while session.timer.remaining > 0:
             await sleep(1)
             s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
@@ -100,11 +102,15 @@ async def run_interval(session: Session) -> bool:
                     s.timer.running and
                     timer_end == s.timer.end):
                 return False
-            if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
-                from . import classwork
-                await classwork.update_msg(session)
-            elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
-                await pomodoro.update_msg(session)
+            # メッセージ更新間隔に従って更新
+            current_time = time.time()
+            if current_time - last_update >= MESSAGE_UPDATE_INTERVAL_SECONDS:
+                if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
+                    from . import classwork
+                    await classwork.update_msg(session)
+                elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
+                    await pomodoro.update_msg(session)
+                last_update = current_time
     else:
         await sleep(session.timer.remaining)
     
