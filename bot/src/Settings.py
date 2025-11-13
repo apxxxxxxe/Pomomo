@@ -1,5 +1,10 @@
+import logging
+
 import discord
 from configs import user_messages as u_msg, config
+from configs.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Settings:
@@ -24,17 +29,17 @@ class Settings:
     @classmethod
     async def is_valid_interaction(cls, interaction: discord.Interaction, duration: int, short_break: int = None,
                        long_break: int = None, intervals: int = None) -> bool:
-        print(f"DEBUG: is_valid_interaction called with: duration={duration}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
-        print(f"DEBUG: MAX_INTERVAL_MINUTES={config.MAX_INTERVAL_MINUTES}")
+        logger.debug(f"is_valid_interaction called with: duration={duration}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
+        logger.debug(f"MAX_INTERVAL_MINUTES={config.MAX_INTERVAL_MINUTES}")
         
         duration_valid = config.MAX_INTERVAL_MINUTES >= duration > 0
         short_break_valid = not short_break or config.MAX_INTERVAL_MINUTES >= short_break > 0
         long_break_valid = not long_break or config.MAX_INTERVAL_MINUTES >= long_break > 0
         intervals_valid = not intervals or config.MAX_INTERVAL_MINUTES >= intervals > 0
         
-        print(f"DEBUG: duration_valid={duration_valid}, short_break_valid={short_break_valid}, long_break_valid={long_break_valid}, intervals_valid={intervals_valid}")
+        logger.debug(f"duration_valid={duration_valid}, short_break_valid={short_break_valid}, long_break_valid={long_break_valid}, intervals_valid={intervals_valid}")
         
         is_valid = duration_valid and short_break_valid and long_break_valid and intervals_valid
-        print(f"DEBUG: validation result: {is_valid}")
+        logger.debug(f"validation result: {is_valid}")
         
         return is_valid

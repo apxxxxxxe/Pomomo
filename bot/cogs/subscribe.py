@@ -1,4 +1,5 @@
-import discord
+import logging
+
 import discord
 from discord.ext import commands
 from discord import app_commands, HTTPException
@@ -7,6 +8,9 @@ from src.session import session_manager
 from src.voice_client import vc_accessor as vc_accessor, vc_manager as vc_manager
 from src.utils import voice_validation
 from configs import bot_enum, user_messages as u_msg
+from configs.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Subscribe(commands.Cog):
@@ -44,9 +48,10 @@ class Subscribe(commands.Cog):
             # defer()によるthinkingメッセージを削除して、チャンネルに送信
             await interaction.delete_original_response()
             await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
-            print("muted all users")
+            logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user}")
         except Exception as e:
-            print(f"DEBUG: Error in enableautomute: {e}")
+            logger.error(f"Error in enableautomute: {e}")
+            logger.exception("Exception details:")
             await interaction.delete_original_response()
             await interaction.channel.send(u_msg.AUTOMUTE_ENABLE_FAILED, silent=True)
 
@@ -81,7 +86,8 @@ class Subscribe(commands.Cog):
             await interaction.delete_original_response()
             await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/disableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
         except Exception as e:
-            print(f"DEBUG: Error in disableautomute: {e}")
+            logger.error(f"Error in disableautomute: {e}")
+            logger.exception("Exception details:")
             await interaction.delete_original_response()
             await interaction.channel.send(u_msg.AUTOMUTE_DISABLE_FAILED, silent=True)
 
@@ -93,43 +99,46 @@ class Subscribe(commands.Cog):
 
         # ボイスチャンネルの変更がない場合は処理しない
         if before.channel == after.channel:
-            print(f'No channel change for {member.display_name}, ignoring.')
+            logger.debug(f'No channel change for {member.display_name}, ignoring.')
             return
 
-        print(f'Voice state update for {member.display_name}: {before.channel} -> {after.channel}')
+        logger.info(f'Voice state update for {member.display_name}: {before.channel} -> {after.channel}')
             
         # 移動前のチャンネルが存在する場合
         if before.channel:
-            print(f'{member.display_name} left the channel {before.channel.name}.')
+            logger.info(f'{member.display_name} left the channel {before.channel.name}.')
             session = vc_manager.get_connected_session(str(before.channel.guild.id))
-            session_vc = vc_accessor.get_voice_channel(session.ctx)
-            if session and session_vc.id == before.channel.id:
-                auto_mute = session.auto_mute
-                if auto_mute.all:
-                    if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
-                            (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client):
-                        print(f"unmuting {member.display_name}")
-                        try:
-                            await member.edit(mute=False)
-                        except HTTPException as e:
-                            if e.text == "Target user is not connected to voice.":
-                                print("text is",e.text)
-                                await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", silent=True)
-                            else:
-                                print(e.text)
+            if session:
+                session_vc = vc_accessor.get_voice_channel(session.ctx)
+                if session_vc and session_vc.id == before.channel.id:
+                    auto_mute = session.auto_mute
+                    if auto_mute.all:
+                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
+                                (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client):
+                            logger.debug(f"Unmuting {member.display_name}")
+                            try:
+                                await member.edit(mute=False)
+                            except HTTPException as e:
+                                logger.warning(f"Failed to unmute {member.display_name}: {e}")
+                                if e.text == "Target user is not connected to voice.":
+                                    logger.warning(f"HTTPException text: {e.text}")
+                                    await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", silent=True)
+                                else:
+                                    logger.warning(f"HTTPException text: {e.text}")
 
         # 移動後のチャンネルが存在する場合
         if after.channel:
-            print(f'{member.display_name} joined the channel {after.channel.name}.')
+            logger.info(f'{member.display_name} joined the channel {after.channel.name}.')
             session = vc_manager.get_connected_session(str(after.channel.guild.id))
-            session_vc = vc_accessor.get_voice_channel(session.ctx)
-            if session and session_vc.name == after.channel.name:
-                auto_mute = session.auto_mute
-                if auto_mute.all:
-                    if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
-                            (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and not (member.voice.mute):
-                        print(f"muting {member.display_name}")
-                        await auto_mute.safe_edit_member(member, unmute=False)
+            if session:
+                session_vc = vc_accessor.get_voice_channel(session.ctx)
+                if session_vc and session_vc.name == after.channel.name:
+                    auto_mute = session.auto_mute
+                    if auto_mute.all:
+                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
+                                (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and member.voice and not member.voice.mute:
+                            logger.debug(f"Muting {member.display_name}")
+                            await auto_mute.safe_edit_member(member, unmute=False)
         
 async def setup(client):
     await client.add_cog(Subscribe(client))

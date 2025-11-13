@@ -1,9 +1,14 @@
+import logging
+
 from discord.ext.commands import Context
 from discord.channel import TextChannel, VoiceChannel
 from discord import User, Member
 
 from ..voice_client import vc_accessor
 from .Subscription import Subscription
+from configs.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 ALL = "all"
@@ -45,7 +50,7 @@ class AutoMute(Subscription):
         try:
             await member.edit(mute=not unmute)
         except Exception as e:
-            print(f"DEBUG: Failed to edit member {member.display_name}: {e}")
+            logger.warning(f"Failed to edit member {member.display_name}: {e}")
 
     async def mute(self, ctx: Context, who=None):
         vc_members = vc_accessor.get_true_members_in_voice_channel(ctx)
@@ -80,7 +85,7 @@ class AutoMute(Subscription):
                 await self.safe_edit_member(member, unmute=True)
 
     async def handle_all(self, ctx):
-        print("getting voice channel...")
+        logger.debug("Getting voice channel for automute")
         from ..voice_client import vc_accessor
         
         # ボイスチャンネルを取得（ミュート操作が実際に行われる場所）

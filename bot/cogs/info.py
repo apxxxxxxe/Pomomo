@@ -1,4 +1,5 @@
 from random import choice
+import logging
 
 import discord
 from discord.ext import commands
@@ -7,6 +8,9 @@ from discord import app_commands
 from src.session import session_manager
 from src.utils import msg_builder
 from configs import user_messages as u_msg, bot_enum
+from configs.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Info(commands.Cog):
@@ -25,23 +29,27 @@ class Info(commands.Cog):
 
     @help.error
     async def help_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        print(f"DEBUG: help_error triggered with error type: {type(error)}")
+        logger.error(f"Help command error for user {interaction.user}: {type(error).__name__}")
         
         try:
             if isinstance(error, app_commands.CommandInvokeError):
+                logger.exception("CommandInvokeError in help command:", exc_info=error)
                 # システムエラーとして扱う
                 if not interaction.response.is_done():
                     await interaction.response.send_message(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
                 else:
                     await interaction.followup.send(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
             else:
+                logger.error(f"Unhandled error type in help: {type(error).__name__}")
+                logger.exception("Exception details:", exc_info=error)
                 # その他のエラー
                 if not interaction.response.is_done():
                     await interaction.response.send_message(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
                 else:
                     await interaction.followup.send(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
         except Exception as e:
-            print(f"DEBUG: Error in help error handler: {e}")
+            logger.error(f"Error in help error handler: {e}")
+            logger.exception("Exception details:")
 
 async def setup(client):
     await client.add_cog(Info(client))

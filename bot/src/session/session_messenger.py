@@ -1,6 +1,11 @@
+import logging
+
 from discord import Embed, Colour
 
 from .Session import Session
+from configs.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 async def send_countdown_msg(session: Session, title: str):
@@ -16,7 +21,7 @@ async def send_countdown_msg(session: Session, title: str):
         else:
             await session.ctx.delete_original_response()
             session.bot_start_msg = await session.ctx.channel.send(embed=embed, silent=True)
-    print("countdown message sent")
+    logger.info(f"Countdown message sent for guild {session.ctx.guild.id}")
     await session.bot_start_msg.pin()
 
 async def send_classwork_msg(session: Session):
@@ -34,5 +39,5 @@ async def send_classwork_msg(session: Session):
         else:
             await session.ctx.delete_original_response()
             session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)
-    print("classwork message sent")
+    logger.info(f"Classwork message sent for guild {session.ctx.guild.id}")
     await session.bot_start_msg.pin()

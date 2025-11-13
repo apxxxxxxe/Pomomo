@@ -1,5 +1,6 @@
 import time as t
 from asyncio import sleep
+import logging
 from discord import Colour
 import random
 
@@ -8,9 +9,13 @@ from .Session import Session
 from ..utils import player, msg_builder
 from ..voice_client import vc_accessor, vc_manager
 from configs import config, bot_enum, user_messages as u_msg
+from configs.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 async def resume(session: Session):
+    logger.debug(f"Resuming session for guild {session.ctx.guild.id}")
     session.timeout = int(t.time() + config.TIMEOUT_SECONDS)
     await state_handler.auto_mute(session)
     if session.state == bot_enum.State.COUNTDOWN:
@@ -23,16 +28,16 @@ async def resume(session: Session):
 
 async def start_pomodoro(session: Session):
     # response.defer(ephemeral=True)の後に呼ばれる前提
-    print("DEBUG: session_controller.start called")
+    logger.info(f"Starting pomodoro session for guild {session.ctx.guild.id}")
     try:
-        print("DEBUG: Calling vc_manager.connect")
+        logger.debug("Calling vc_manager.connect")
         if not await vc_manager.connect(session):
-            print("DEBUG: vc_manager.connect returned False")
+            logger.warning("vc_manager.connect returned False")
             return
-        print("DEBUG: vc_manager.connect succeeded, activating session")
+        logger.debug("vc_manager.connect succeeded, activating session")
         
         session_manager.activate(session)
-        print("DEBUG: Session activated, sending start message")
+        logger.info(f"Session activated for guild {session.ctx.guild.id}")
         
         embed = msg_builder.settings_embed(session)
         message = f'> -# {session.ctx.user.display_name} さんが`/pomodoro`を使用しました\n{random.choice(u_msg.GREETINGS)}'
@@ -40,17 +45,16 @@ async def start_pomodoro(session: Session):
         await session.ctx.delete_original_response()
         session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)
         await session.bot_start_msg.pin()
-        print("DEBUG: Start message sent, playing alert")
+        logger.debug("Start message sent, playing alert")
         
         await player.alert(session)
-        print("DEBUG: Alert played, resuming session")
+        logger.debug("Alert played, resuming session")
         
         await resume(session)
-        print("DEBUG: Session resumed successfully")
+        logger.info(f"Session resumed successfully for guild {session.ctx.guild.id}")
     except Exception as e:
-        print(f"DEBUG: Exception in session_controller.start: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Exception in session_controller.start_pomodoro: {type(e).__name__}: {e}")
+        logger.exception("Exception details:")
         raise
 
 
@@ -65,6 +69,7 @@ async def cleanup_pins(session: Session):
 
 
 async def end(session: Session):
+    logger.info(f"Ending session for guild {session.ctx.guild.id}")
     ctx = session.ctx
     await cleanup_pins(session)
     # mute モードでない場合のみ unmute を実行
@@ -76,6 +81,7 @@ async def end(session: Session):
 
 
 async def run_interval(session: Session) -> bool:
+    logger.debug(f"Running interval for session in guild {session.ctx.guild.id}")
     import time
     
     session.timer.running = True

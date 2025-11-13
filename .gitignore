@@ -36,4 +36,7 @@ venv.bak/
 # Tests
 tests/
 
+# Logs
+logs/
+
 .DS_Store

@@ -1,67 +1,97 @@
 import os
+import logging
 
 import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv, find_dotenv
 
 from configs import config
+from configs.logging_config import setup_logging, get_logger
 from src.session import session_manager
+
+# ロギングの設定
+setup_logging()
+logger = get_logger(__name__)
 
 intents = discord.Intents.default()
 intents.typing = False
 intents.members = True
 intents.message_content = True
 
-env_path = find_dotenv(raise_error_if_not_found=True)
-load_dotenv(env_path)
-TOKEN = os.getenv('DISCORD_TOKEN')
-if not TOKEN:
-    raise ValueError("DISCORD_TOKEN not found in environment variables")
-print("Loaded .env file from:", env_path)
+try:
+    env_path = find_dotenv(raise_error_if_not_found=True)
+    load_dotenv(env_path)
+    TOKEN = os.getenv('DISCORD_TOKEN')
+    if not TOKEN:
+        raise ValueError("DISCORD_TOKEN not found in environment variables")
+    logger.info(f"Loaded .env file from: {env_path}")
+except Exception as e:
+    logger.critical(f"Failed to load environment variables: {e}")
+    raise
 bot = commands.Bot(command_prefix=config.CMD_PREFIX, help_command=None, intents=intents)
-
-@bot.event
-async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
-    print(f'Commands in tree: {len(bot.tree.get_commands())}')
-    for cmd in bot.tree.get_commands():
-        print(f'- {cmd.name}: {cmd.description}')
-    try:
-        synced = await bot.tree.sync()
-        print(f'Synced {len(synced)} command(s)')
-        for cmd in synced:
-            print(f'Synced: {cmd.name}')
-    except Exception as e:
-        print(f'Failed to sync commands: {e}')
-        import traceback
-        traceback.print_exc()
-    kill_idle_sessions.start()
-
-async def load_extensions():
-    try:
-        await bot.load_extension('cogs.info')
-        print('Loaded cogs.info')
-        await bot.load_extension('cogs.control')
-        print('Loaded cogs.control')
-        await bot.load_extension('cogs.subscribe')
-        print('Loaded cogs.subscribe')
-    except Exception as e:
-        print(f'Error loading cogs: {e}')
-        import traceback
-        traceback.print_exc()
-
-async def main():
-    await load_extensions()
-    await bot.start(TOKEN)
-
-if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
-
 
 @tasks.loop(minutes=30)
 async def kill_idle_sessions():
-    for session in session_manager.active_sessions.values():
-        await session_manager.kill_if_idle(session)
+    try:
+        logger.debug("Running kill_idle_sessions task")
+        for session in session_manager.active_sessions.values():
+            try:
+                await session_manager.kill_if_idle(session)
+            except Exception as e:
+                logger.error(f"Error killing idle session {session.ctx.guild.id}: {e}")
+    except Exception as e:
+        logger.error(f"Error in kill_idle_sessions task: {e}")
+        logger.exception("Exception details:")
+
+@bot.event
+async def on_ready():
+    logger.info(f'{bot.user} has connected to Discord!')
+    logger.info(f'Commands in tree: {len(bot.tree.get_commands())}')
+    for cmd in bot.tree.get_commands():
+        logger.debug(f'- {cmd.name}: {cmd.description}')
+    try:
+        synced = await bot.tree.sync()
+        logger.info(f'Synced {len(synced)} command(s)')
+        for cmd in synced:
+            logger.debug(f'Synced: {cmd.name}')
+    except Exception as e:
+        logger.error(f'Failed to sync commands: {e}')
+        logger.exception("Exception details:")
+    
+    try:
+        kill_idle_sessions.start()
+        logger.info("Started kill_idle_sessions task")
+    except Exception as e:
+        logger.error(f"Failed to start kill_idle_sessions task: {e}")
+
+async def load_extensions():
+    cogs_to_load = ['cogs.info', 'cogs.control', 'cogs.subscribe']
+    for cog in cogs_to_load:
+        try:
+            await bot.load_extension(cog)
+            logger.info(f'Loaded {cog}')
+        except Exception as e:
+            logger.error(f'Error loading {cog}: {e}')
+            logger.exception("Exception details:")
+
+async def main():
+    try:
+        await load_extensions()
+        logger.info("Starting bot...")
+        await bot.start(TOKEN)
+    except Exception as e:
+        logger.critical(f"Failed to start bot: {e}")
+        logger.exception("Exception details:")
+        raise
+
+if __name__ == '__main__':
+    import asyncio
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.critical(f"Unhandled exception: {e}")
+        logger.exception("Exception details:")
 
 
