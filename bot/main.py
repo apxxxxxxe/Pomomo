@@ -8,6 +8,8 @@ from dotenv import load_dotenv, find_dotenv
 from configs import config
 from configs.logging_config import setup_logging, get_logger
 from src.session import session_manager
+from src.utils.api_monitor import setup_api_monitoring
+from src.utils.aiohttp_hook import setup_aiohttp_monitoring
 
 # ロギングの設定
 setup_logging()
@@ -63,6 +65,20 @@ async def on_ready():
         logger.info("Started kill_idle_sessions task")
     except Exception as e:
         logger.error(f"Failed to start kill_idle_sessions task: {e}")
+    
+    # APIレスポンスヘッダ監視の設定
+    try:
+        # まず従来のAPI監視を設定（HTTPフックは無効）
+        setup_api_monitoring(bot, enable_hook=False)
+        logger.info("API monitoring setup completed")
+        
+        # aiohttpレベルでのフックを試みる
+        if setup_aiohttp_monitoring(bot):
+            logger.info("aiohttp level monitoring enabled")
+        else:
+            logger.warning("aiohttp monitoring not available - using manual logging only")
+    except Exception as e:
+        logger.error(f"Failed to setup API monitoring: {e}")
 
 async def load_extensions():
     cogs_to_load = ['cogs.info', 'cogs.control', 'cogs.subscribe']
