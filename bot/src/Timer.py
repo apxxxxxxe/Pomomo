@@ -44,10 +44,14 @@ class Timer:
             return time_remaining_str
 
         elif time_remaining >= 60:
-            minutes_str = str(int(time_remaining/60)) + '分'
+            total_seconds = round(time_remaining)
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+            
+            minutes_str = str(minutes) + '分'
             time_remaining_str = minutes_str
-            if hi_rez:
-                seconds_str = str(round(time_remaining % 60)) + '秒'
+            if hi_rez and seconds > 0:
+                seconds_str = str(seconds) + '秒'
                 time_remaining_str += seconds_str
             return time_remaining_str
 

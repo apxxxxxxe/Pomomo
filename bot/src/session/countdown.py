@@ -9,7 +9,6 @@ from . import session_manager, session_controller
 from .Session import Session
 from ..utils import player
 from configs.logging_config import get_logger
-from configs.config import MESSAGE_UPDATE_INTERVAL_SECONDS
 
 logger = get_logger(__name__)
 
@@ -63,7 +62,7 @@ async def start(session: Session):
         logger.info(f"Starting countdown for guild {session.ctx.guild.id}")
         session.timer.running = True
         session.timer.end = time.time() + session.timer.remaining
-        last_update = 0
+        last_remaining_seconds = -1  # 前回更新時の残り秒数を記録
         while True:
             time_remaining = session.timer.remaining
             await sleep(1)
@@ -72,11 +71,26 @@ async def start(session: Session):
                     session.timer.running and
                     time_remaining == session.timer.remaining):
                 break
-            # メッセージ更新間隔に従って更新
-            current_time = time.time()
-            if current_time - last_update >= MESSAGE_UPDATE_INTERVAL_SECONDS:
+            
+            # タイマーの残り時間を更新
+            session.timer.remaining = session.timer.end - time.time()
+            
+            # 残り時間に応じた更新判定
+            remaining_seconds = round(session.timer.remaining)
+            remaining_minutes = int(session.timer.remaining / 60)
+            should_update = False
+            
+            if remaining_minutes == session.settings.duration - 1 or remaining_seconds < 60:
+                # 開始1分未満または残り時間1分未満の場合: 秒数の1の位が0か5のときのみ更新（0:55, 0:50, ..., 0:05, 0:00）
+                should_update = remaining_seconds % 10 == 0 or remaining_seconds % 10 == 5
+            else:
+                # 1分以上の場合: 秒数が0または30のときのみ更新（1:00, 1:30, 2:00等）
+                should_update = remaining_seconds % 60 == 0 or remaining_seconds % 60 == 30
+            
+            # 更新条件を満たし、かつ前回と異なる秒数の場合のみ更新
+            if should_update and remaining_seconds != last_remaining_seconds:
                 await update_msg(session)
-                last_update = current_time
+                last_remaining_seconds = remaining_seconds
     except Exception as e:
         logger.error(f"Error in countdown start: {e}")
         logger.exception("Exception details:")

@@ -10,7 +10,6 @@ from ..utils import player, msg_builder
 from ..voice_client import vc_accessor, vc_manager
 from configs import config, bot_enum, user_messages as u_msg
 from configs.logging_config import get_logger
-from configs.config import MESSAGE_UPDATE_INTERVAL_SECONDS
 
 logger = get_logger(__name__)
 
@@ -94,7 +93,13 @@ async def run_interval(session: Session) -> bool:
     
     # Pomodoro及びClassworkセッション中の残り時間表示
     if session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK, bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
-        last_update = 0
+        last_remaining_seconds = -1  # 前回更新時の残り秒数を記録
+        # タイマー開始時に1度表示を更新
+        if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
+            from . import classwork
+            await classwork.update_msg(session)
+        elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
+            await pomodoro.update_msg(session)
         while session.timer.remaining > 0:
             await sleep(1)
             s: Session | None = session_manager.active_sessions.get(session_manager.session_id_from(session.ctx))
@@ -102,15 +107,30 @@ async def run_interval(session: Session) -> bool:
                     s.timer.running and
                     timer_end == s.timer.end):
                 return False
-            # メッセージ更新間隔に従って更新
-            current_time = time.time()
-            if current_time - last_update >= MESSAGE_UPDATE_INTERVAL_SECONDS:
+            
+            # タイマーの残り時間を更新
+            session.timer.remaining = session.timer.end - time.time()
+            
+            # 残り時間に応じた更新判定
+            remaining_seconds = round(session.timer.remaining)
+            remaining_minutes = int(session.timer.remaining / 60)
+            should_update = False
+            
+            if (remaining_minutes == session.settings.duration - 1 and (session.state in [bot_enum.State.POMODORO, bot_enum.State.CLASSWORK])) or remaining_seconds < 60:
+                # 開始1分未満または残り時間1分未満の場合: 秒数の1の位が0か5のときのみ更新（0:55, 0:50, ..., 0:05, 0:00）
+                should_update = remaining_seconds % 10 == 0 or remaining_seconds % 10 == 5
+            else:
+                # 1分以上の場合: 秒数が0または30のときのみ更新（1:00, 1:30, 2:00等）
+                should_update = remaining_seconds % 60 == 0 or remaining_seconds % 60 == 30
+            
+            # 更新条件を満たし、かつ前回と異なる秒数の場合のみ更新
+            if should_update and remaining_seconds != last_remaining_seconds:
                 if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
                     from . import classwork
                     await classwork.update_msg(session)
                 elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
                     await pomodoro.update_msg(session)
-                last_update = current_time
+                last_remaining_seconds = remaining_seconds
     else:
         await sleep(session.timer.remaining)
     
