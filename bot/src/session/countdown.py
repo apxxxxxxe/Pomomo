@@ -123,15 +123,7 @@ async def start(session: Session):
             
             # 残り時間に応じた更新判定
             remaining_seconds = round(session.timer.remaining)
-            remaining_minutes = int(session.timer.remaining / 60)
-            should_update = False
-            
-            if remaining_minutes == session.settings.duration - 1 or remaining_seconds < 60:
-                # 開始1分未満または残り時間1分未満の場合: 秒数の1の位が0か5のときのみ更新（0:55, 0:50, ..., 0:05, 0:00）
-                should_update = remaining_seconds % 10 == 0 or remaining_seconds % 10 == 5
-            else:
-                # 1分以上の場合: 秒数が0または30のときのみ更新（1:00, 1:30, 2:00等）
-                should_update = remaining_seconds % 60 == 0 or remaining_seconds % 60 == 30
+            should_update = remaining_seconds % 10 == 0 or remaining_seconds % 10 == 5
             
             # 更新条件を満たし、かつ前回と異なる秒数の場合のみ更新
             if should_update and remaining_seconds != last_remaining_seconds:
