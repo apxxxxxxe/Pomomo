@@ -24,7 +24,7 @@ async def alert(session: Session):
         elif session.state == bot_enum.State.LONG_BREAK:
             path = bot_enum.AlertPath.LONG_BREAK_START
         else:  # SHORT_BREAK
-            path = bot_enum.AlertPath.POMO_START
+            path = bot_enum.AlertPath.LONG_BREAK_START
         
         logger.debug(f"Playing alert sound: {path}")
         source = PCMVolumeTransformer(FFmpegPCMAudio(path, executable='ffmpeg'),
