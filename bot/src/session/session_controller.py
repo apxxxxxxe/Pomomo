@@ -45,7 +45,17 @@ async def start_pomodoro(session: Session):
         # defer()によるthinkingメッセージを削除して、チャンネルに送信
         await session.ctx.delete_original_response()
         session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)
-        await session.bot_start_msg.pin()
+        
+        # ピン留め処理（レート制限エラーをハンドリング）
+        try:
+            await session.bot_start_msg.pin()
+        except discord.errors.HTTPException as e:
+            if e.code == 40062:  # レート制限エラー
+                logger.warning(f"Rate limited when pinning message: {e}")
+                # ピン留めできなくても続行（機能的には問題ない）
+            else:
+                raise  # その他のエラーは再発生
+        
         logger.debug("Start message sent, playing alert")
         
         await player.alert(session)
@@ -62,8 +72,18 @@ async def start_pomodoro(session: Session):
 async def cleanup_pins(session: Session):
     """過去のセッションのピン留めメッセージをクリーンアップする。
     現在のセッションのbot_start_msgは処理から除外する。
+    レート制限エラーの場合はスキップする。
     """
-    for pinned_msg in await session.ctx.channel.pins():
+    try:
+        pins = await session.ctx.channel.pins()
+    except discord.errors.HTTPException as e:
+        if e.code == 40062:  # レート制限エラー
+            logger.warning(f"Rate limited when fetching pins: {e}")
+            return  # クリーンアップをスキップ
+        else:
+            raise  # その他のエラーは再発生
+    
+    for pinned_msg in pins:
         # botが送信したピン留めメッセージで、現在のセッションのbot_start_msgではないもののみ処理
         bot_user = (session.ctx.client if hasattr(session.ctx, 'client') else session.ctx.bot).user
         is_bot_message = pinned_msg.author == bot_user

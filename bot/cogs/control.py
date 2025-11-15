@@ -74,6 +74,20 @@ class Control(commands.Cog):
         logger.info(f"Session created for guild {interaction.guild.id}, starting session controller")
         try:
             await session_controller.start_pomodoro(session)
+        except discord.errors.HTTPException as e:
+            if e.code == 40062:  # レート制限エラー
+                logger.warning(f"Rate limited during session start: {e}")
+                await interaction.delete_original_response()
+                await interaction.channel.send("レート制限に達しています。しばらくPomomoを休ませてあげましょう🍅")
+                # セッションのクリーンアップ
+                if session in session_manager.active_sessions.values():
+                    session_manager.deactivate(session)
+                return
+            else:
+                logger.error(f"HTTPException starting session for guild {interaction.guild.id}: {e}")
+                logger.exception("Exception details:")
+                await interaction.delete_original_response()
+                await interaction.channel.send(u_msg.POMODORO_START_FAILED)
         except Exception as e:
             logger.error(f"Error starting session for guild {interaction.guild.id}: {e}")
             logger.exception("Exception details:")
@@ -115,9 +129,12 @@ class Control(commands.Cog):
 
     @app_commands.command(name="stop", description="現在のポモドーロセッションを停止する")
     async def stop(self, interaction: discord.Interaction):
+        # 最初にdeferを呼ぶ（3秒以内のタイムアウトを防ぐため）
+        await interaction.response.defer(ephemeral=True)
+        
         session = await session_manager.get_session_interaction(interaction)
         if not session:
-            await interaction.response.send_message(u_msg.NO_SESSION_TO_STOP, ephemeral=True)
+            await interaction.followup.send(u_msg.NO_SESSION_TO_STOP, ephemeral=True)
             return
             
         if not await voice_validation.require_same_voice_channel(interaction):
@@ -125,13 +142,10 @@ class Control(commands.Cog):
             if guild and guild.voice_client:
                 bot_name = interaction.client.user.display_name
                 channel_name = guild.voice_client.channel.name
-                await interaction.response.send_message(u_msg.SAME_VOICE_CHANNEL_REQUIRED_ERR.format(command="/stop", bot_name=bot_name, channel_name=channel_name), ephemeral=True)
+                await interaction.followup.send(u_msg.SAME_VOICE_CHANNEL_REQUIRED_ERR.format(command="/stop", bot_name=bot_name, channel_name=channel_name), ephemeral=True)
             else:
-                await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
+                await interaction.followup.send(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
             return
-        
-        # 時間のかかる処理開始前にdefer
-        await interaction.response.defer(ephemeral=True)
         
         try:
             logger.debug(f"Stop command: session.state = {session.state}")
@@ -152,7 +166,17 @@ class Control(commands.Cog):
                 if session.state != bot_enum.State.POMODORO and session.state != bot_enum.State.CLASSWORK:
                     logger.debug(f"Stop command: state is not work state: {session.state}")
             
-            await session_controller.end(session)
+            try:
+                await session_controller.end(session)
+            except discord.errors.HTTPException as e:
+                if e.code == 40062:  # レート制限エラー
+                    logger.warning(f"Rate limited during session stop: {e}")
+                    # レート制限でもセッションは終了させる
+                    session_manager.deactivate(session)
+                    await interaction.followup.send("レート制限に達しています。しばらくPomomoを休ませてあげましょう🍅\n（セッションは終了しました）")
+                    return
+                else:
+                    raise  # その他のHTTPエラーは再発生
 
             # start_msgを削除して新しいメッセージを投稿
             if session.bot_start_msg:
