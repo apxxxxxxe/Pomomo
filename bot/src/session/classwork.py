@@ -1,5 +1,7 @@
 import time as t
 import logging
+import asyncio
+from discord.errors import DiscordServerError, HTTPException
 
 from ..voice_client import vc_manager
 from .Session import Session
@@ -39,24 +41,50 @@ async def update_msg(session: Session):
         success = True
         error_msg = None
         
-        try:
-            await classwork_msg.edit(embed=embed)
-        except Exception as edit_error:
-            success = False
-            error_msg = str(edit_error)
-            raise
-        finally:
-            # 編集操作の実行時間をログ出力
-            edit_duration = t.time() - start_time
-            logger.debug(f"Classwork message edit took {edit_duration:.3f}s")
-            
-            # APIモニタに手動ログを記録
-            monitor.log_manual_edit_attempt(
-                operation_type="classwork_message_edit",
-                duration=edit_duration,
-                success=success,
-                error_msg=error_msg
-            )
+        # リトライロジックを追加
+        max_retries = 3
+        retry_delay = 1.0  # 初期遅延時間（秒）
+        
+        for attempt in range(max_retries):
+            try:
+                await classwork_msg.edit(embed=embed)
+                break  # 成功したらループを抜ける
+            except (DiscordServerError, HTTPException) as edit_error:
+                # 503エラーまたはその他のHTTPエラーの場合
+                if attempt < max_retries - 1:
+                    # 最後の試行でなければリトライ
+                    if isinstance(edit_error, DiscordServerError) and edit_error.status == 503:
+                        logger.warning(f"503 error on attempt {attempt + 1}, retrying in {retry_delay}s...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2  # 指数バックオフ
+                    else:
+                        # その他のHTTPエラーはリトライしない
+                        success = False
+                        error_msg = str(edit_error)
+                        raise
+                else:
+                    # 最後の試行で失敗
+                    success = False
+                    error_msg = str(edit_error)
+                    logger.error(f"Failed to update message after {max_retries} attempts: {edit_error}")
+                    raise
+            except Exception as edit_error:
+                # その他の予期しないエラー
+                success = False
+                error_msg = str(edit_error)
+                raise
+        
+        # 編集操作の実行時間をログ出力
+        edit_duration = t.time() - start_time
+        logger.debug(f"Classwork message edit took {edit_duration:.3f}s")
+        
+        # APIモニタに手動ログを記録
+        monitor.log_manual_edit_attempt(
+            operation_type="classwork_message_edit",
+            duration=edit_duration,
+            success=success,
+            error_msg=error_msg
+        )
     except Exception as e:
         logger.error(f"Error updating classwork message: {e}")
         logger.exception("Exception details:")

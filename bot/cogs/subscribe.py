@@ -108,7 +108,7 @@ class Subscribe(commands.Cog):
         if before.channel:
             logger.info(f'{member.display_name} left the channel {before.channel.name}.')
             session = vc_manager.get_connected_session(str(before.channel.guild.id))
-            if session:
+            if session and session.ctx:
                 session_vc = vc_accessor.get_voice_channel(session.ctx)
                 if session_vc and session_vc.id == before.channel.id:
                     auto_mute = session.auto_mute
@@ -130,7 +130,7 @@ class Subscribe(commands.Cog):
         if after.channel:
             logger.info(f'{member.display_name} joined the channel {after.channel.name}.')
             session = vc_manager.get_connected_session(str(after.channel.guild.id))
-            if session:
+            if session and session.ctx:
                 session_vc = vc_accessor.get_voice_channel(session.ctx)
                 if session_vc and session_vc.name == after.channel.name:
                     auto_mute = session.auto_mute
