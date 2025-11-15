@@ -1,6 +1,7 @@
 import time as t
 from asyncio import sleep
 import logging
+import discord
 from discord import Colour
 import random
 
@@ -59,13 +60,25 @@ async def start_pomodoro(session: Session):
 
 
 async def cleanup_pins(session: Session):
+    """過去のセッションのピン留めメッセージをクリーンアップする。
+    現在のセッションのbot_start_msgは処理から除外する。
+    """
     for pinned_msg in await session.ctx.channel.pins():
-        # botが送信したピン留めメッセージをアンピンし、色を赤に変更
-        if pinned_msg.author == (session.ctx.client if hasattr(session.ctx, 'client') else session.ctx.bot).user:
-            embed = pinned_msg.embeds[0]
-            embed.colour = Colour.red()
-            await pinned_msg.unpin()
-            await pinned_msg.edit(embed=embed)
+        # botが送信したピン留めメッセージで、現在のセッションのbot_start_msgではないもののみ処理
+        bot_user = (session.ctx.client if hasattr(session.ctx, 'client') else session.ctx.bot).user
+        is_bot_message = pinned_msg.author == bot_user
+        is_not_current_session = not session.bot_start_msg or pinned_msg.id != session.bot_start_msg.id
+        
+        if is_bot_message and is_not_current_session:
+            # 過去のセッションのピン留めメッセージをアンピンして削除
+            try:
+                await pinned_msg.unpin()
+                await pinned_msg.delete()
+                logger.info(f"Cleaned up old pinned message (ID: {pinned_msg.id})")
+            except discord.errors.HTTPException as e:
+                logger.error(f"Failed to cleanup old pinned message (ID: {pinned_msg.id}): {e}")
+                # エラーが発生してもクリーンアップを続行
+                continue
 
 
 async def end(session: Session):

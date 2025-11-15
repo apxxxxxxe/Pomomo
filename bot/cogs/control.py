@@ -154,22 +154,39 @@ class Control(commands.Cog):
             
             await session_controller.end(session)
 
-            # start_msgを条件に応じて書き換え
+            # start_msgを削除して新しいメッセージを投稿
             if session.bot_start_msg:
-                logger.debug("Editing bot start message")
-                embed = session.bot_start_msg.embeds[0]
-                embed.description = f'終了'
-                embed.set_footer(text='終了したセッション')
-                message='またお会いしましょう！ 👋'
-                embed.colour = discord.Colour.green()
-                if (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK):
-                    message='お疲れ様です！ 👋'
-                    embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
-                await session.bot_start_msg.edit(content=message, embed=embed)
+                logger.debug("Replacing bot start message with completion message")
+                
+                # 新しいembedを作成
+                if session.bot_start_msg.embeds:
+                    embed = session.bot_start_msg.embeds[0].copy()
+                    embed.description = f'終了'
+                    embed.set_footer(text='終了したセッション')
+                    message='またお会いしましょう！ 👋'
+                    embed.colour = discord.Colour.green()
+                    if (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK):
+                        message='お疲れ様です！ 👋'
+                        embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
+                    
+                    # 古いメッセージを削除
+                    try:
+                        await session.bot_start_msg.delete()
+                        # ユーザー情報を含めた新しいメッセージとして投稿
+                        stop_info = f'> -# {interaction.user.display_name} さんが`/stop`を使用しました\n'
+                        await session.ctx.channel.send(content=stop_info + message, embed=embed)
+                        logger.info(f"Replaced start message with completion message")
+                    except discord.errors.HTTPException as e:
+                        logger.error(f"Failed to delete/replace start message: {e}")
+                        # 削除に失敗した場合は、編集を試みる（フォールバック）
+                        try:
+                            stop_info = f'> -# {interaction.user.display_name} さんが`/stop`を使用しました\n'
+                            await session.bot_start_msg.edit(content=stop_info + message, embed=embed)
+                        except discord.errors.HTTPException:
+                            logger.warning(f"Cannot edit or delete start message. Continuing...")
             
-            # defer()によるthinkingメッセージを削除して、silent指定でチャンネルに送信
+            # defer()によるthinkingメッセージを削除
             await interaction.delete_original_response()
-            await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/stop`を使用しました\nセッションを終了しました。', silent=True)
         except Exception as e:
             logger.error(f"Error stopping session: {e}")
             logger.exception("Exception details:")
