@@ -21,9 +21,11 @@ async def alert(session: Session):
             path = bot_enum.AlertPath.POMO_END
         elif session.state == bot_enum.State.POMODORO:
             path = bot_enum.AlertPath.POMO_START
+        elif session.state == bot_enum.State.CLASSWORK:
+            path = bot_enum.AlertPath.POMO_START
         elif session.state == bot_enum.State.LONG_BREAK:
-            path = bot_enum.AlertPath.LONG_BREAK_START
-        else:  # SHORT_BREAK
+            path = bot_enum.AlertPath.POMO_END
+        else:  # SHORT_BREAK, CLASSWORK_BREAK
             path = bot_enum.AlertPath.LONG_BREAK_START
         
         logger.debug(f"Playing alert sound: {path}")
