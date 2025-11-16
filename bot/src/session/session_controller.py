@@ -37,7 +37,7 @@ async def start_pomodoro(session: Session):
             return
         logger.debug("vc_manager.connect succeeded, activating session")
         
-        session_manager.activate(session)
+        await session_manager.activate(session)
         logger.info(f"Session activated for guild {session.ctx.guild.id}")
         
         embed = msg_builder.settings_embed(session)
@@ -110,7 +110,7 @@ async def end(session: Session):
         await session.auto_mute.unmute(ctx)
     if vc_accessor.get_voice_client(ctx):
         await vc_manager.disconnect(session)
-    session_manager.deactivate(session)
+    await session_manager.deactivate(session)
 
 
 async def run_interval(session: Session) -> bool:

@@ -41,6 +41,10 @@ NO_SESSION_TO_STOP = "停止するセッションがありません 😊"
 NO_SESSION_TO_SKIP = "スキップするセッションがありません 😊"
 ACTIVE_SESSION_IN_CHANNEL = "「{channel_name}」でセッション実行中です 💭\nまずVCに参加後`/stop`で停止してくださいね"
 
+# 同時実行エラー
+COMMAND_ALREADY_RUNNING = "すでに`{command}`が実行されています🫡"
+VOICE_OPERATION_IN_PROGRESS = "音声チャンネルの操作を処理中です🫡 少しお待ちください"
+
 # システムエラー（簡潔）
 POMODORO_START_FAILED = "`/pomodoro`の開始に失敗しました 💭"
 START_SESSION_FAILED = "`/start`の開始に失敗しました 💭"
