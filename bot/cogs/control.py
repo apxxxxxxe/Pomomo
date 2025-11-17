@@ -217,13 +217,13 @@ class Control(commands.Cog):
                     # 新しいembedを作成
                     if session.bot_start_msg.embeds:
                         embed = session.bot_start_msg.embeds[0].copy()
-                        embed.description = f'終了'
+                        embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
                         embed.set_footer(text='終了したセッション')
-                        message='またお会いしましょう！ 👋'
                         embed.colour = discord.Colour.green()
-                        if (session.state == bot_enum.State.POMODORO or session.state == bot_enum.State.CLASSWORK):
+                        if session.stats.seconds_completed > 0:
                             message='お疲れ様です！ 👋'
-                            embed.description = f'終了：{msg_builder.stats_msg(session.stats)}'
+                        else:
+                            message='またお会いしましょう！ 👋'
                         
                         # 古いメッセージを削除
                         try:
