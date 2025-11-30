@@ -97,12 +97,48 @@ class Subscribe(commands.Cog):
         if member.bot:
             return
 
-        # ボイスチャンネルの変更がない場合は処理しない
+        # ボイスチャンネルの変更がない場合でも、ミュート/デフン状態の変更をログに記録
         if before.channel == after.channel:
-            logger.debug(f'No channel change for {member.display_name}, ignoring.')
-            return
+            # ミュート状態の変更を確認
+            if before.self_mute != after.self_mute:
+                state_change = "muted" if after.self_mute else "unmuted"
+                logger.info(f'{member.display_name} {state_change} themselves in {after.channel.name if after.channel else "no channel"}')
+            if before.mute != after.mute:
+                state_change = "server muted" if after.mute else "server unmuted"
+                logger.info(f'{member.display_name} was {state_change} in {after.channel.name if after.channel else "no channel"}')
+            
+            # デフン状態の変更を確認
+            if before.self_deaf != after.self_deaf:
+                state_change = "deafened" if after.self_deaf else "undeafened"
+                logger.info(f'{member.display_name} {state_change} themselves in {after.channel.name if after.channel else "no channel"}')
+            if before.deaf != after.deaf:
+                state_change = "server deafened" if after.deaf else "server undeafened"
+                logger.info(f'{member.display_name} was {state_change} in {after.channel.name if after.channel else "no channel"}')
+                
+            # チャンネル変更がない場合はここで処理終了
+            if before.channel == after.channel:
+                logger.debug(f'No channel change for {member.display_name}, but logged mute/deafen state changes if any.')
+                return
 
         logger.info(f'Voice state update for {member.display_name}: {before.channel} -> {after.channel}')
+        
+        # チャンネル変更時のミュート/デフン状態もログに記録
+        if before.channel != after.channel:
+            # 移動前後のミュート状態の変更
+            if before.self_mute != after.self_mute:
+                state_change = "muted" if after.self_mute else "unmuted"
+                logger.info(f'{member.display_name} {state_change} themselves during channel change')
+            if before.mute != after.mute:
+                state_change = "server muted" if after.mute else "server unmuted"
+                logger.info(f'{member.display_name} was {state_change} during channel change')
+                
+            # 移動前後のデフン状態の変更
+            if before.self_deaf != after.self_deaf:
+                state_change = "deafened" if after.self_deaf else "undeafened"
+                logger.info(f'{member.display_name} {state_change} themselves during channel change')
+            if before.deaf != after.deaf:
+                state_change = "server deafened" if after.deaf else "server undeafened"
+                logger.info(f'{member.display_name} was {state_change} during channel change')
             
         # 移動前のチャンネルが存在する場合
         if before.channel:
