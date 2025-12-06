@@ -5,7 +5,7 @@ import discord
 from discord import Colour
 import random
 
-from . import session_manager, countdown, state_handler, pomodoro, session_messenger
+from . import session_manager, countdown, state_handler, pomodoro, session_messenger, classwork
 from .Session import Session
 from ..utils import player, msg_builder
 from ..voice_client import vc_accessor, vc_manager
@@ -137,7 +137,6 @@ async def run_interval(session: Session) -> bool:
         last_remaining_seconds = -1  # 前回更新時の残り秒数を記録
         # タイマー開始時に1度表示を更新
         if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
-            from . import classwork
             await classwork.update_msg(session)
         elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
             await pomodoro.update_msg(session)
@@ -167,7 +166,6 @@ async def run_interval(session: Session) -> bool:
             # 更新条件を満たし、かつ前回と異なる秒数の場合のみ更新
             if should_update and remaining_seconds != last_remaining_seconds:
                 if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
-                    from . import classwork
                     await classwork.update_msg(session)
                 elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
                     await pomodoro.update_msg(session)
@@ -204,7 +202,6 @@ async def run_interval(session: Session) -> bool:
         # フェーズ切り替え後：新しいタイマーメッセージを送信
         try:
             if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
-                from . import classwork
                 embed = msg_builder.settings_embed(session)
                 timer_message = f'{random.choice(u_msg.ENCOURAGEMENTS)}'
                 session.bot_start_msg = await session.ctx.channel.send(timer_message, embed=embed, silent=True)

@@ -352,7 +352,7 @@ class Control(commands.Cog):
                           interaction,
                           )
         await countdown.handle_connection(session, audio_alert)
-        session_manager.activate(session)
+        await session_manager.activate(session)
         await session_messenger.send_countdown_msg(session, title)
         await countdown.start(session)
 
