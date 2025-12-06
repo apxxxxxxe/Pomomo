@@ -5,7 +5,7 @@ import discord
 from discord import Colour
 import random
 
-from . import session_manager, countdown, state_handler, pomodoro
+from . import session_manager, countdown, state_handler, pomodoro, session_messenger
 from .Session import Session
 from ..utils import player, msg_builder
 from ..voice_client import vc_accessor, vc_manager
@@ -40,16 +40,8 @@ async def start_pomodoro(session: Session):
         await session_manager.activate(session)
         logger.info(f"Session activated for guild {session.ctx.guild.id}")
         
-        # 開始メッセージを送信（ピン留めなし）
-        start_message = f'> -# {session.ctx.user.display_name} さんが`/pomodoro`を使用しました'
-        await session.ctx.delete_original_response()
-        await session.ctx.channel.send(start_message, silent=True)
-        
-        # タイマー用のembedメッセージを別途送信
-        embed = msg_builder.settings_embed(session)
-        timer_message = f'{random.choice(u_msg.GREETINGS)}'
-        session.bot_start_msg = await session.ctx.channel.send(timer_message, embed=embed, silent=True)
-        
+        # メッセージ送信
+        await session_messenger.send_pomodoro_msg(session)
         logger.debug("Start message sent, playing alert")
         
         await player.alert(session)
@@ -59,6 +51,29 @@ async def start_pomodoro(session: Session):
         logger.info(f"Session resumed successfully for guild {session.ctx.guild.id}")
     except Exception as e:
         logger.error(f"Exception in session_controller.start_pomodoro: {type(e).__name__}: {e}")
+        logger.exception("Exception details:")
+        raise
+
+async def start_classwork(session: Session):
+    """
+    classworkセッション開始処理
+    """
+    logger.info(f"Starting classwork session for guild {session.ctx.guild.id}")
+    try:
+        # 接続処理
+        await classwork.handle_connection(session)
+        await session_manager.activate(session)
+        
+        # メッセージ送信
+        await session_messenger.send_classwork_msg(session)
+        
+        # 開始アラート音を再生
+        await player.alert(session)
+
+        await resume(session)
+        logger.info(f"Classwork session started successfully for guild {session.ctx.guild.id}")
+    except Exception as e:
+        logger.error(f"Exception in session_controller.start_classwork: {type(e).__name__}: {e}")
         logger.exception("Exception details:")
         raise
 

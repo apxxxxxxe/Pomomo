@@ -27,6 +27,110 @@ class Control(commands.Cog):
     def __init__(self, client):
         self.client = client
 
+    async def _validate_and_setup_session(self, interaction: discord.Interaction, command_name: str, lock_dict: dict) -> tuple[bool, str]:
+        """
+        共通の検証ロジックを実行し、セッション作成の準備を行う
+        Returns: (is_valid, guild_id)
+        """
+        guild_id = str(interaction.guild.id)
+        
+        # ギルドごとのロックを取得または作成
+        if guild_id not in lock_dict:
+            lock_dict[guild_id] = asyncio.Lock()
+        
+        # ロックが既に取得されているかチェック
+        if lock_dict[guild_id].locked():
+            logger.warning(f"{command_name} command already running for guild {guild_id}")
+            await interaction.response.send_message(u_msg.COMMAND_ALREADY_RUNNING.format(command=command_name), ephemeral=True)
+            return False, guild_id
+            
+        return True, guild_id
+
+    async def _validate_session_prerequisites(self, interaction: discord.Interaction) -> bool:
+        """
+        セッション開始前の前提条件を検証する
+        Returns: True if all prerequisites are met
+        """
+        # アクティブセッションの確認
+        if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
+            await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
+            return False
+            
+        # ユーザーがボイスチャンネルに参加しているかチェック
+        if not interaction.user.voice:
+            await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
+            return False
+        
+        # ボットの権限チェック
+        voice_channel = interaction.user.voice.channel
+        bot_member = interaction.guild.me
+        
+        if not voice_channel.permissions_for(bot_member).connect:
+            await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
+            return False
+        
+        if not voice_channel.permissions_for(bot_member).speak:
+            await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
+            return False
+            
+        return True
+
+    async def _handle_session_start_error(self, interaction: discord.Interaction, session: Session, error: Exception, error_message: str):
+        """
+        セッション開始時のエラーを統一的に処理する
+        """
+        if isinstance(error, discord.errors.HTTPException):
+            if error.code == 40062:  # レート制限エラー
+                logger.warning(f"Rate limited during session start: {error}")
+                await interaction.delete_original_response()
+                await interaction.channel.send("レート制限に達しています。しばらくPomomoを休ませてあげましょう🍅")
+                # セッションのクリーンアップ
+                if session in session_manager.active_sessions.values():
+                    await session_manager.deactivate(session)
+                return
+            else:
+                logger.error(f"HTTPException starting session for guild {interaction.guild.id}: {error}")
+                logger.exception("Exception details:")
+        else:
+            logger.error(f"Error starting session for guild {interaction.guild.id}: {error}")
+            logger.exception("Exception details:")
+            
+        await interaction.delete_original_response()
+        await interaction.channel.send(error_message)
+
+    async def _handle_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError, start_failed_msg: str, command_name: str):
+        """
+        コマンドエラーを統一的に処理する
+        """
+        logger.error(f"{command_name} command error for user {interaction.user}: {type(error).__name__}")
+        
+        try:
+            if isinstance(error, app_commands.CommandInvokeError):
+                logger.exception(f"CommandInvokeError in {command_name} command:", exc_info=error)
+                # システムエラーとして扱う
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(start_failed_msg, ephemeral=True)
+                else:
+                    await interaction.followup.send(start_failed_msg, ephemeral=True)
+            elif isinstance(error, app_commands.TransformError):
+                logger.warning(f"TransformError in {command_name} command: {error}")
+                # パラメータ変換エラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
+                else:
+                    await interaction.followup.send(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
+            else:
+                logger.error(f"Unhandled error type in {command_name}: {type(error).__name__}")
+                logger.exception("Exception details:", exc_info=error)
+                # その他のエラー
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(start_failed_msg, ephemeral=True)
+                else:
+                    await interaction.followup.send(start_failed_msg, ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error in {command_name} error handler: {e}")
+            logger.exception("Exception details:")
+
 
     @app_commands.command(name="pomodoro", description="ポモドーロセッションを開始する")
     @app_commands.describe(
@@ -38,19 +142,13 @@ class Control(commands.Cog):
     async def pomodoro(self, interaction: discord.Interaction, pomodoro: int = 25, short_break: int = 5, long_break: int = 20, intervals: int = 4):
         logger.info(f"Pomodoro command called by {interaction.user} with params: pomodoro={pomodoro}, short_break={short_break}, long_break={long_break}, intervals={intervals}")
         
-        guild_id = str(interaction.guild.id)
-        
-        # ギルドごとのロックを取得または作成
-        if guild_id not in pomodoro_locks:
-            pomodoro_locks[guild_id] = asyncio.Lock()
-        
-        # ロックが既に取得されているかチェック
-        if pomodoro_locks[guild_id].locked():
-            logger.warning(f"Pomodoro command already running for guild {guild_id}")
-            await interaction.response.send_message(u_msg.COMMAND_ALREADY_RUNNING.format(command="/pomodoro"), ephemeral=True)
+        # 共通の検証ロジック
+        is_valid, guild_id = await self._validate_and_setup_session(interaction, "/pomodoro", pomodoro_locks)
+        if not is_valid:
             return
         
         async with pomodoro_locks[guild_id]:
+            # 設定値検証
             if not await Settings.is_valid_interaction(interaction, pomodoro, short_break, long_break, intervals):
                 logger.warning(f"Invalid settings provided by {interaction.user}")
                 await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
@@ -58,28 +156,8 @@ class Control(commands.Cog):
                 
             logger.debug("Settings validation passed")
             
-            if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
-                logger.warning(f"Active session already exists for guild {interaction.guild.id}")
-                await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
-                return
-                
-            logger.debug("No active session found")
-            
-            # ユーザーがボイスチャンネルに参加しているかチェック
-            if not interaction.user.voice:
-                await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
-                return
-            
-            # ボットの権限チェック
-            voice_channel = interaction.user.voice.channel
-            bot_member = interaction.guild.me
-            
-            if not voice_channel.permissions_for(bot_member).connect:
-                await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
-                return
-            
-            if not voice_channel.permissions_for(bot_member).speak:
-                await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
+            # セッション開始前の前提条件検証
+            if not await self._validate_session_prerequisites(interaction):
                 return
                 
             logger.debug("Voice permission check passed, creating session")
@@ -93,58 +171,12 @@ class Control(commands.Cog):
             logger.info(f"Session created for guild {interaction.guild.id}, starting session controller")
             try:
                 await session_controller.start_pomodoro(session)
-            except discord.errors.HTTPException as e:
-                if e.code == 40062:  # レート制限エラー
-                    logger.warning(f"Rate limited during session start: {e}")
-                    await interaction.delete_original_response()
-                    await interaction.channel.send("レート制限に達しています。しばらくPomomoを休ませてあげましょう🍅")
-                    # セッションのクリーンアップ
-                    if session in session_manager.active_sessions.values():
-                        await session_manager.deactivate(session)
-                    return
-                else:
-                    logger.error(f"HTTPException starting session for guild {interaction.guild.id}: {e}")
-                    logger.exception("Exception details:")
-                    await interaction.delete_original_response()
-                    await interaction.channel.send(u_msg.POMODORO_START_FAILED)
             except Exception as e:
-                logger.error(f"Error starting session for guild {interaction.guild.id}: {e}")
-                logger.exception("Exception details:")
-                await interaction.delete_original_response()
-                await interaction.channel.send(u_msg.POMODORO_START_FAILED)
+                await self._handle_session_start_error(interaction, session, e, u_msg.POMODORO_START_FAILED)
 
     @pomodoro.error
     async def pomodoro_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        logger.error(f"Pomodoro command error for user {interaction.user}: {type(error).__name__}")
-        logger.debug(f"Error details: {error}")
-        logger.debug(f"Interaction response done: {interaction.response.is_done()}")
-        
-        try:
-            if isinstance(error, app_commands.CommandInvokeError):
-                logger.exception("CommandInvokeError in pomodoro command:", exc_info=error)
-                # システムエラーとして扱う
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(u_msg.POMODORO_START_FAILED, ephemeral=True)
-                else:
-                    await interaction.followup.send(u_msg.POMODORO_START_FAILED, ephemeral=True)
-            elif isinstance(error, app_commands.TransformError):
-                logger.warning(f"TransformError in pomodoro command: {error}")
-                # パラメータ変換エラー
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
-                else:
-                    await interaction.followup.send(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
-            else:
-                logger.error(f"Unhandled error type in pomodoro: {type(error).__name__}")
-                logger.exception("Exception details:", exc_info=error)
-                # その他のエラー
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(u_msg.POMODORO_START_FAILED, ephemeral=True)
-                else:
-                    await interaction.followup.send(u_msg.POMODORO_START_FAILED, ephemeral=True)
-        except Exception as e:
-            logger.error(f"Error in pomodoro error handler: {e}")
-            logger.exception("Exception details:")
+        await self._handle_command_error(interaction, error, u_msg.POMODORO_START_FAILED, "pomodoro")
 
     @app_commands.command(name="stop", description="現在のポモドーロセッションを停止する")
     async def stop(self, interaction: discord.Interaction):
@@ -361,99 +393,45 @@ class Control(commands.Cog):
         break_time="休憩時間（分、デフォルト: 30）"
     )
     async def classwork(self, interaction: discord.Interaction, work_time: int = 30, break_time: int = 30):
-        guild_id = str(interaction.guild.id)
+        logger.info(f"Start command called by {interaction.user} with params: work_time={work_time}, break_time={break_time}")
         
-        # ギルドごとのロックを取得または作成
-        if guild_id not in start_locks:
-            start_locks[guild_id] = asyncio.Lock()
-        
-        # ロックが既に取得されているかチェック
-        if start_locks[guild_id].locked():
-            logger.warning(f"Start command already running for guild {guild_id}")
-            await interaction.response.send_message(u_msg.COMMAND_ALREADY_RUNNING.format(command="/start"), ephemeral=True)
+        # 共通の検証ロジック
+        is_valid, guild_id = await self._validate_and_setup_session(interaction, "/start", start_locks)
+        if not is_valid:
             return
         
         async with start_locks[guild_id]:
+            # 設定値検証
             if not await Settings.is_valid_interaction(interaction, work_time, break_time, 30, 4):
                 await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
                 return
                 
-            if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
-                await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
-                return
-
-            # ユーザーがボイスチャンネルに参加しているかチェック
-            if not interaction.user.voice:
-                await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
-                return
+            logger.debug("Settings validation passed")
             
-            # ボットの権限チェック
-            voice_channel = interaction.user.voice.channel
-            bot_member = interaction.guild.me
-            
-            if not voice_channel.permissions_for(bot_member).connect:
-                await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
-                return
-            
-            if not voice_channel.permissions_for(bot_member).speak:
-                await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
+            # セッション開始前の前提条件検証
+            if not await self._validate_session_prerequisites(interaction):
                 return
                 
+            logger.debug("Voice permission check passed, creating session")
+
             # 時間のかかる処理開始前にdefer
             await interaction.response.defer(ephemeral=True)
             
             # CLASSWORKセッション作成（カスタム時間設定）
-            # Settings(duration, short_break, long_break, intervals) の形式に合わせる
             session = Session(bot_enum.State.CLASSWORK,
                               Settings(work_time, break_time, 30, 1),  # classworkでは long_break, intervals は使わない
                               interaction,
                               )
+            logger.info(f"Session created for guild {interaction.guild.id}, starting session controller")
             
             try:
-                await classwork.handle_connection(session)
-                await session_manager.activate(session)
-                await session_messenger.send_classwork_msg(session)
-                
-                # 開始アラート音を再生
-                await player.alert(session)
-
-                await session_controller.resume(session)
+                await session_controller.start_classwork(session)
             except Exception as e:
-                logger.error(f"Error starting classwork session: {e}")
-                logger.exception("Exception details:")
-                await interaction.delete_original_response()
-                await interaction.channel.send(u_msg.START_SESSION_FAILED)
+                await self._handle_session_start_error(interaction, session, e, u_msg.START_SESSION_FAILED)
 
     @classwork.error
     async def classwork_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        logger.error(f"Classwork command error for user {interaction.user}: {type(error).__name__}")
-        
-        try:
-            if isinstance(error, app_commands.CommandInvokeError):
-                logger.exception("CommandInvokeError in classwork command:", exc_info=error)
-                # システムエラーとして扱う
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(u_msg.START_SESSION_FAILED, ephemeral=True)
-                else:
-                    await interaction.followup.send(u_msg.START_SESSION_FAILED, ephemeral=True)
-            elif isinstance(error, app_commands.TransformError):
-                logger.warning(f"TransformError in classwork command: {error}")
-                # パラメータ変換エラー
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
-                else:
-                    await interaction.followup.send(u_msg.INVALID_DURATION_ERR.format(max_minutes=config.MAX_INTERVAL_MINUTES), ephemeral=True)
-            else:
-                logger.error(f"Unhandled error type in classwork: {type(error).__name__}")
-                logger.exception("Exception details:", exc_info=error)
-                # その他のエラー
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(u_msg.START_SESSION_FAILED, ephemeral=True)
-                else:
-                    await interaction.followup.send(u_msg.START_SESSION_FAILED, ephemeral=True)
-        except Exception as e:
-            logger.error(f"Error in classwork error handler: {e}")
-            logger.exception("Exception details:")
+        await self._handle_command_error(interaction, error, u_msg.START_SESSION_FAILED, "classwork")
 
 
 async def setup(client):
