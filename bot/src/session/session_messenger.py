@@ -1,9 +1,11 @@
 import logging
+import random
 
 from discord import Embed, Colour
 
 from .Session import Session
 from configs.logging_config import get_logger
+from configs import user_messages as u_msg
 
 logger = get_logger(__name__)
 
@@ -28,7 +30,7 @@ async def send_classwork_msg(session: Session):
     from ..utils import msg_builder
     
     embed = msg_builder.classwork_embed(session)
-    message = f'> -# {session.ctx.user.display_name} さんが`/start`を使用しました'
+    message = f'> -# {session.ctx.user.display_name} さんが`/start`を使用しました\n{random.choice(u_msg.GREETINGS)}'
     
     if hasattr(session.ctx, 'send'):  # Context
         session.bot_start_msg = await session.ctx.send(message, embed=embed)
