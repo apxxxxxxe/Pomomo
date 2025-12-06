@@ -40,21 +40,15 @@ async def start_pomodoro(session: Session):
         await session_manager.activate(session)
         logger.info(f"Session activated for guild {session.ctx.guild.id}")
         
-        embed = msg_builder.settings_embed(session)
-        message = f'> -# {session.ctx.user.display_name} さんが`/pomodoro`を使用しました\n{random.choice(u_msg.GREETINGS)}'
-        # defer()によるthinkingメッセージを削除して、チャンネルに送信
+        # 開始メッセージを送信（ピン留めなし）
+        start_message = f'> -# {session.ctx.user.display_name} さんが`/pomodoro`を使用しました'
         await session.ctx.delete_original_response()
-        session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)
+        await session.ctx.channel.send(start_message, silent=True)
         
-        # ピン留め処理（レート制限エラーをハンドリング）
-        try:
-            await session.bot_start_msg.pin()
-        except discord.errors.HTTPException as e:
-            if e.code == 40062:  # レート制限エラー
-                logger.warning(f"Rate limited when pinning message: {e}")
-                # ピン留めできなくても続行（機能的には問題ない）
-            else:
-                raise  # その他のエラーは再発生
+        # タイマー用のembedメッセージを別途送信
+        embed = msg_builder.settings_embed(session)
+        timer_message = f'{random.choice(u_msg.GREETINGS)}'
+        session.bot_start_msg = await session.ctx.channel.send(timer_message, embed=embed, silent=True)
         
         logger.debug("Start message sent, playing alert")
         
@@ -104,7 +98,6 @@ async def cleanup_pins(session: Session):
 async def end(session: Session):
     logger.info(f"Ending session for guild {session.ctx.guild.id}")
     ctx = session.ctx
-    await cleanup_pins(session)
     # mute モードでない場合のみ unmute を実行
     if not getattr(session, 'is_muted_mode', False):
         await session.auto_mute.unmute(ctx)
@@ -175,10 +168,37 @@ async def run_interval(session: Session) -> bool:
     else:
         if await session_manager.kill_if_idle(session):
             return False
+        
+        # フェーズ終了時：既存のタイマーメッセージを削除
+        if session.bot_start_msg:
+            try:
+                await session.bot_start_msg.delete()
+                logger.debug("Deleted timer message before phase transition")
+            except discord.errors.HTTPException as e:
+                logger.warning(f"Failed to delete timer message: {e}")
+            session.bot_start_msg = None
+        
         if session.state == bot_enum.State.POMODORO:
             await session.auto_mute.unmute(session.ctx)
         elif session.state == bot_enum.State.CLASSWORK:
             await session.auto_mute.unmute(session.ctx)
+        
         await state_handler.transition(session)
         await player.alert(session)
+        
+        # フェーズ切り替え後：新しいタイマーメッセージを送信
+        try:
+            if session.state in [bot_enum.State.CLASSWORK, bot_enum.State.CLASSWORK_BREAK]:
+                from . import classwork
+                embed = msg_builder.settings_embed(session)
+                timer_message = f'{random.choice(u_msg.ENCOURAGEMENTS)}'
+                session.bot_start_msg = await session.ctx.channel.send(timer_message, embed=embed, silent=True)
+            elif session.state in [bot_enum.State.POMODORO, bot_enum.State.SHORT_BREAK, bot_enum.State.LONG_BREAK]:
+                embed = msg_builder.settings_embed(session)
+                timer_message = f'{random.choice(u_msg.ENCOURAGEMENTS)}'
+                session.bot_start_msg = await session.ctx.channel.send(timer_message, embed=embed, silent=True)
+            logger.debug("Created new timer message after phase transition")
+        except Exception as e:
+            logger.error(f"Failed to create new timer message: {e}")
+            
     return True

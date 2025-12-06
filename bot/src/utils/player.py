@@ -34,9 +34,7 @@ async def alert(session: Session):
         if vc.is_playing():
             vc.stop()
         vc.play(source)
-        while vc.is_playing():
-            await sleep(1)
-        logger.debug("Alert sound finished")
+        logger.debug("Alert sound started (non-blocking)")
     except Exception as e:
         logger.error(f"Error playing alert: {e}")
         logger.exception("Exception details:")

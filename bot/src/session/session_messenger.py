@@ -11,35 +11,43 @@ logger = get_logger(__name__)
 
 
 async def send_countdown_msg(session: Session, title: str):
-    title += '\u2800' * max((18 - len(title)), 0)
-    embed = Embed(title=title, description=f'残り{session.timer.time_remaining_to_str()}', colour=Colour.green())
+    # 開始メッセージを送信（ピン留めなし）
+    start_message = f'> -# {session.ctx.user.display_name} さんが`/countdown`を使用しました'
     
     if hasattr(session.ctx, 'send'):  # Context
-        session.bot_start_msg = await session.ctx.send(embed=embed)
+        await session.ctx.send(start_message, silent=True)
     else:  # Interaction
         if not session.ctx.response.is_done():
-            await session.ctx.response.send_message(embed=embed)
-            session.bot_start_msg = await session.ctx.original_response()
+            await session.ctx.response.send_message(start_message, silent=True)
         else:
             await session.ctx.delete_original_response()
-            session.bot_start_msg = await session.ctx.channel.send(embed=embed, silent=True)
+            await session.ctx.channel.send(start_message, silent=True)
+    
+    # タイマー用のembedメッセージを別途送信
+    title += '\u2800' * max((18 - len(title)), 0)
+    embed = Embed(title=title, description=f'残り{session.timer.time_remaining_to_str()}', colour=Colour.green())
+    session.bot_start_msg = await session.ctx.channel.send(embed=embed, silent=True)
+    
     logger.info(f"Countdown message sent for guild {session.ctx.guild.id}")
-    await session.bot_start_msg.pin()
 
 async def send_classwork_msg(session: Session):
     from ..utils import msg_builder
     
-    embed = msg_builder.classwork_embed(session)
-    message = f'> -# {session.ctx.user.display_name} さんが`/start`を使用しました\n{random.choice(u_msg.GREETINGS)}'
+    # 開始メッセージを送信（ピン留めなし）
+    start_message = f'> -# {session.ctx.user.display_name} さんが`/start`を使用しました'
     
     if hasattr(session.ctx, 'send'):  # Context
-        session.bot_start_msg = await session.ctx.send(message, embed=embed)
+        await session.ctx.send(start_message, silent=True)
     else:  # Interaction
         if not session.ctx.response.is_done():
-            await session.ctx.response.send_message(message, embed=embed)
-            session.bot_start_msg = await session.ctx.original_response()
+            await session.ctx.response.send_message(start_message, silent=True)
         else:
             await session.ctx.delete_original_response()
-            session.bot_start_msg = await session.ctx.channel.send(message, embed=embed, silent=True)
+            await session.ctx.channel.send(start_message, silent=True)
+    
+    # タイマー用のembedメッセージを別途送信
+    embed = msg_builder.classwork_embed(session)
+    timer_message = f'{random.choice(u_msg.GREETINGS)}'
+    session.bot_start_msg = await session.ctx.channel.send(timer_message, embed=embed, silent=True)
+    
     logger.info(f"Classwork message sent for guild {session.ctx.guild.id}")
-    await session.bot_start_msg.pin()
