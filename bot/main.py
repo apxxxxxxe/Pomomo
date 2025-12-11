@@ -7,7 +7,7 @@ from dotenv import load_dotenv, find_dotenv
 
 from configs import config
 from configs.logging_config import setup_logging, get_logger
-from src.session import session_manager
+from src.session import session_manager, goal_manager
 from src.utils.api_monitor import setup_api_monitoring
 from src.utils.aiohttp_hook import setup_aiohttp_monitoring
 
@@ -79,6 +79,113 @@ async def on_ready():
             logger.warning("aiohttp monitoring not available - using manual logging only")
     except Exception as e:
         logger.error(f"Failed to setup API monitoring: {e}")
+
+@bot.event
+async def on_message(message):
+    """メッセージイベント処理：botへのメンションを目標として記録"""
+    # botのメッセージは無視
+    if message.author.bot:
+        return
+    
+    # botがメンションされているかチェック
+    if bot.user in message.mentions:
+        guild_id = message.guild.id if message.guild else None
+        user_id = message.author.id
+        
+        if guild_id:
+            # アクティブセッションがあるかチェック
+            session_id = session_manager.session_id_from(message)
+            session = session_manager.active_sessions.get(session_id)
+            if session:
+                # メンション部分を除いた目標テキストを抽出
+                goal_text = message.content.replace(f'<@{bot.user.id}>', '').strip()
+                if goal_text:
+                    # 既存の目標があるかチェック
+                    existing_goal = goal_manager.get_goal(guild_id, user_id)
+                    
+                    goal_manager.set_goal(guild_id, user_id, goal_text)
+                    logger.info(f"Goal set for user {user_id}: {goal_text}")
+                    
+                    # 確認メッセージを送信（上書きの場合は既存目標も表示）
+                    if existing_goal:
+                        confirmation_msg = f"<@{user_id}> 了解しました。前回の目標 `{existing_goal}` は上書きされます💾"
+                    else:
+                        confirmation_msg = f"<@{user_id}> 了解しました。応援しています！"
+                    
+                    try:
+                        await message.channel.send(confirmation_msg, silent=True)
+                        logger.info(f"Sent confirmation message to user {user_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to send confirmation message: {e}")
+            else:
+                # セッションがない場合のメッセージ
+                try:
+                    no_session_msg = "目標を設定したい場合、まずはセッションを開始してください🍅"
+                    await message.channel.send(no_session_msg, silent=True)
+                    logger.info(f"Sent no session message to user {user_id}")
+                except Exception as e:
+                    logger.error(f"Failed to send no session message: {e}")
+    
+    # 通常のコマンド処理
+    await bot.process_commands(message)
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    """リアクション追加イベント処理：進捗確認メッセージのリアクションに応答"""
+    # botのリアクションは無視
+    if user.bot:
+        return
+    
+    # 進捗確認メッセージかどうかをチェック（botのメッセージで特定の内容を含む）
+    message = reaction.message
+    if (message.author == bot.user and 
+        "進み具合はいかがですか？" in message.content):
+        
+        guild_id = message.guild.id if message.guild else None
+        user_id = user.id
+        
+        if guild_id:
+            goal = goal_manager.get_goal(guild_id, user_id)
+            if goal:
+                # 既にこのメッセージにリアクションしているかチェック
+                message_id = message.id
+                if goal_manager.has_user_reacted_to_message(guild_id, user_id, message_id):
+                    logger.debug(f"User {user_id} already reacted to message {message_id}, ignoring")
+                    return
+                
+                # リアクション記録
+                goal_manager.mark_user_reacted_to_message(guild_id, user_id, message_id)
+                
+                # リアクションに応じた応援メッセージを送信
+                emoji = str(reaction.emoji)
+                encouragement = goal_manager.get_encouragement_message(emoji)
+                
+                try:
+                    await message.channel.send(f"<@{user_id}> {encouragement}", silent=True)
+                    logger.info(f"Sent encouragement to user {user_id} for reaction {emoji}")
+                    
+                    # 達成リアクション（🏆）の場合は目標を削除
+                    if emoji == "🏆":
+                        goal_manager.remove_goal(guild_id, user_id)
+                        logger.info(f"Goal completed and removed for user {user_id}")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to send encouragement message: {e}")
+            else:
+                # 進捗確認対象外ユーザーの場合
+                message_id = message.id
+                if not goal_manager.has_non_goal_user_reacted_to_message(guild_id, user_id, message_id):
+                    # 初回リアクションの場合のみメッセージを送信
+                    goal_manager.mark_non_goal_user_reacted_to_message(guild_id, user_id, message_id)
+                    
+                    try:
+                        encouragement_msg = f"<@{user_id}> 頑張っていますね！よろしければ目標を教えて下さい！"
+                        await message.channel.send(encouragement_msg, silent=True)
+                        logger.info(f"Sent goal request message to non-goal user {user_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to send goal request message: {e}")
+                else:
+                    logger.debug(f"Non-goal user {user_id} already reacted to message {message_id}, ignoring")
 
 async def load_extensions():
     cogs_to_load = ['cogs.info', 'cogs.control', 'cogs.subscribe']
