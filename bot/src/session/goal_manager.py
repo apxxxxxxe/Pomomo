@@ -15,8 +15,6 @@ session_goals: Dict[Tuple[int, int], Dict[str, any]] = {}
 # 構造: {(guild_id, user_id): set(message_id)}
 non_goal_user_reactions: Dict[Tuple[int, int], set] = {}
 
-# 進捗確認の頻度設定（n回に1回）
-PROGRESS_CHECK_FREQUENCY = 1
 
 def set_goal(guild_id: int, user_id: int, goal: str) -> None:
     """
@@ -67,13 +65,37 @@ def increment_check_count(guild_id: int, user_id: int) -> int:
         return session_goals[key]["check_count"]
     return 0
 
-def should_check_progress(guild_id: int, user_id: int) -> bool:
+def calculate_progress_check_frequency(work_duration_minutes: int) -> int:
+    """
+    作業時間に基づいて進捗確認の頻度を動的に計算する
+    およそ1時間ごとに進捗確認を行うための作業回数を求める
+    
+    Args:
+        work_duration_minutes: 作業時間（分）
+        
+    Returns:
+        n回の作業ごとに進捗確認を行う値
+    """
+    ONE_HOUR_SECONDS = 3600
+    work_duration_seconds = work_duration_minutes * 60
+    
+    # 1時間あたりの理想的な作業セッション数を計算
+    ideal_sessions_per_hour = ONE_HOUR_SECONDS / work_duration_seconds
+    
+    # 四捨五入して整数にし、最小値を1にする
+    frequency = max(1, round(ideal_sessions_per_hour))
+    
+    logger.debug(f"Work duration: {work_duration_minutes}min, calculated frequency: {frequency}")
+    return frequency
+
+def should_check_progress(guild_id: int, user_id: int, work_duration_minutes: int) -> bool:
     """
     進捗確認を行うべきかどうかを判定する
     
     Args:
         guild_id: ギルドID
         user_id: ユーザーID
+        work_duration_minutes: 作業時間（分）
         
     Returns:
         進捗確認を行うべき場合True
@@ -83,7 +105,9 @@ def should_check_progress(guild_id: int, user_id: int) -> bool:
         return False
     
     check_count = increment_check_count(guild_id, user_id)
-    return check_count % PROGRESS_CHECK_FREQUENCY == 0
+    # 動的に計算した頻度を使用
+    progress_check_frequency = calculate_progress_check_frequency(work_duration_minutes)
+    return check_count % progress_check_frequency == 0
 
 def remove_goal(guild_id: int, user_id: int) -> bool:
     """

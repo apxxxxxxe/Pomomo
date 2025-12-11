@@ -234,6 +234,7 @@ async def run_interval(session: Session) -> bool:
 async def _handle_progress_check(session: Session):
     """作業フェーズ終了時の進捗確認処理"""
     guild_id = session.ctx.guild.id
+    work_duration_minutes = session.settings.duration
     
     # 該当ギルドの全ての目標を取得
     goals = goal_manager.get_all_goals_for_guild(guild_id)
@@ -243,7 +244,7 @@ async def _handle_progress_check(session: Session):
     voice_channel = vc_accessor.get_voice_channel(session.ctx)
     
     for user_id, goal in goals.items():
-        if goal_manager.should_check_progress(guild_id, user_id):
+        if goal_manager.should_check_progress(guild_id, user_id, work_duration_minutes):
             # ボイスチャンネルに参加しているかチェック
             if voice_channel:
                 user_in_voice = any(member.id == user_id for member in voice_channel.members)
