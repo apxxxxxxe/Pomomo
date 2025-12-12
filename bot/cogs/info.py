@@ -23,7 +23,7 @@ class Info(commands.Cog):
     async def help(self, interaction: discord.Interaction, command: str = ''):
         help_embed = msg_builder.help_embed(command)
         if help_embed:
-            await interaction.response.send_message(embed=help_embed)
+            await interaction.response.send_message(embed=help_embed, ephemeral=True)
         else:
             await interaction.response.send_message(u_msg.HELP_COMMAND_ERROR, ephemeral=True)
 

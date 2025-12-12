@@ -17,18 +17,39 @@ COUNTDOWN_ARGS = '複数単語のタイトルは" "で囲んでください（�
 
 COMMANDS = {
     'コマンド一覧': {
-        'start': ['/start [work_time] [break_time]',
+        'start': ['⏰️ /start （作業と休憩を繰り返す作業タイマーを開始）',
+            '⏰️ /start [work_time] [break_time]',
             'シンプルな作業タイマーを開始します。\n\n' + 
             'work_time: 作業時間（分）（デフォルト: 30分）\n' +
             'break_time: 休憩時間（分）（デフォルト: 30分）'],
-        'pomodoro': ['/pomodoro [pomodoro] [short_break] [long_break] [intervals]',
+        'pomodoro': ['🍅 /pomodoro （ポモドーロタイマーを開始）',
+            '🍅 /pomodoro [pomodoro] [short_break] [long_break] [intervals]',
             'オプションのカスタム設定でポモドーロセッションを開始します。\n\n' + POMO_ARGS],
-        'skip': ['/skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],
-        'stop': ['/stop', 'セッションを終了'],
-        'countdown': ['/countdown <duration> [title] [mute]',
+        'skip': ['⏭️/skip （タイマーを次のフェーズへスキップ）', '⏭️/skip', '現在のインターバルをスキップして次のポモドーロまたは休憩を開始'],
+        'stop': ['⏹️/stop （タイマーを停止）', '⏹️/stop', 'セッションを終了'],
+        'countdown': ['⌛️ /countdown （カウントダウンタイマー）',
+            '⌛️ /countdown <duration> [title] [mute]',
             'リアルタイムで更新されるタイマー付きのピン留めメッセージを送信するカウントダウンを開始します。\n\n' +
             COUNTDOWN_ARGS],
-        'enableautomute': ['/enableautomute', 'ポモドーロインターバル中に\n自動的にスピーカーとマイクをオフにする機能を有効にします。'],
-        'disableautomute': ['/disableautomute', 'ポモドーロインターバル中に\n自動的にスピーカーとマイクをオフにする機能を無効にします。']
+        'enableautomute': ['🔇 /enableautomute （自動ミュート機能をオン）', '🔇 /enableautomute', 'セッションの作業時間中に\n自動的にスピーカーとマイクをオフにする機能を有効にします。'],
+        'disableautomute': ['🔇 /disableautomute （自動ミュート機能をオフ）', '🔇 /disableautomute', 'セッションの作業時間中に\n自動的にスピーカーとマイクをオフにする機能を無効にします。']
+    },
+    'その他の機能': {
+        'goal': ['🏆 セッション中の目標設定機能（`/help goal` で詳細）',
+            '🏆 セッション中の目標設定',
+            'セッション中にボットをメンションして目標を設定できます。\n\n' +
+            '• セッション中、チャットで「@pomomo ランダムトークを3つ増やす」のようにメンションして目標設定\n' +
+            '• 既存の目標がある場合は上書きされます\n' +
+            '• 目標はそのセッション中のみ有効です'],
+        'progress': ['📝 自動進捗確認機能（`/help progress` で詳細）',
+            '📝 自動進捗確認',
+            'セッション参加者が目標を設定している場合、\n' +
+            '約1時間ごとにbotが皆さんの作業進捗を確認します。\n\n' +
+            '• 進捗確認メッセージに以下のリアクションで回答できます。\n' +
+            '  🏆: 目標達成！\n' +
+            '  😎: 順調に進んでいる\n' +
+            '  👌: まあまあ進んでいる\n' +
+            '  😇: あまり進んでいない\n' +
+            '• 🏆️で回答すると目標達成となり、次回以降の進捗確認は行われません。']
     },
 }

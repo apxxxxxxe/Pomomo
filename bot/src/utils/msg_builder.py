@@ -124,7 +124,7 @@ def help_embed(for_command) -> Embed:
         for cmds_key, cmds_dict in help_info.COMMANDS.items():
             cmd_info = cmds_dict.get(for_command)
             if cmd_info:
-                return Embed(title=cmd_info[0], description=cmd_info[1], colour=Colour.blue())
+                return Embed(title=cmd_info[1], description=cmd_info[2], colour=Colour.blue())
         return Embed(title='Error', description='No help found for that command.', colour=Colour.red())
 
 
