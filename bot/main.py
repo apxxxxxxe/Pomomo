@@ -136,10 +136,12 @@ async def on_reaction_add(reaction, user):
     if user.bot:
         return
     
-    # 進捗確認メッセージかどうかをチェック（botのメッセージで特定の内容を含む）
+    # 進捗確認メッセージかどうかをチェック（botのembedメッセージで特定のタイトルを含む）
     message = reaction.message
     if (message.author == bot.user and 
-        "進み具合はいかがですか？" in message.content):
+        message.embeds and 
+        len(message.embeds) > 0 and
+        "進捗確認" in message.embeds[0].title):
         
         guild_id = message.guild.id if message.guild else None
         user_id = user.id

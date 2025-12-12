@@ -259,24 +259,30 @@ async def _handle_progress_check(session: Session):
     # 対象ユーザーがいる場合のみメッセージを送信
     if users_to_check:
         try:
-            # 進捗確認メッセージを構築
-            message_lines = ["お疲れ様です。進み具合はいかがですか？"]
+            # 各ユーザーの目標を含むembedを構築
+            embed = discord.Embed(
+                title="進捗確認（約1時間ごとに実施）",
+                description="お疲れ様です。進み具合はいかがですか？",
+                color=Colour.blue()
+            )
             
-            # 各ユーザーの目標を追加
+            # 各ユーザーの目標をフィールドとして追加
             for user_id, goal in users_to_check:
-                message_lines.append(f"<@{user_id}>: `{goal}`")
+                # ユーザーオブジェクトを取得して表示名を取得
+                user = session.ctx.guild.get_member(user_id)
+                user_display_name = user.display_name if user else f"User {user_id}"
+                
+                embed.add_field(
+                    name=user_display_name,
+                    value=f"`{goal}`",
+                    inline=False
+                )
             
-            # リアクション説明を追加
-            message_lines.extend([
-                "",
-                "-# 🏆 : 目標達成！",
-                "-# 😎 : 順調",
-                "-# 👌 : まあまあ", 
-                "-# 😇 : だめ"
-            ])
+            # リアクション説明をフッターに追加
+            footer_text = "🏆:目標達成！ 😎:順調 👌:まあまあ 😇:だめ"
+            embed.set_footer(text=footer_text)
             
-            progress_message = "\n".join(message_lines)
-            sent_message = await session.ctx.channel.send(progress_message, silent=True)
+            sent_message = await session.ctx.channel.send(embed=embed, silent=True)
             
             # リアクションを追加
             reactions = ["🏆", "😎", "👌", "😇"]
