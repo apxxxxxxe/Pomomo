@@ -236,6 +236,10 @@ async def _handle_progress_check(session: Session):
     guild_id = session.ctx.guild.id
     work_duration_minutes = session.settings.duration
     
+    # ギルドの作業回数を増加
+    guild_count = goal_manager.increment_guild_work_count(guild_id)
+    logger.debug(f"Guild {guild_id} work count after increment: {guild_count}")
+    
     # 該当ギルドの全ての目標を取得
     goals = goal_manager.get_all_goals_for_guild(guild_id)
     

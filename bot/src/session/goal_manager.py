@@ -15,6 +15,10 @@ session_goals: Dict[Tuple[int, int], Dict[str, any]] = {}
 # 構造: {(guild_id, user_id): set(message_id)}
 non_goal_user_reactions: Dict[Tuple[int, int], set] = {}
 
+# ギルドレベルの作業回数カウント（進捗確認用）
+# 構造: {guild_id: work_count}
+guild_work_counts: Dict[int, int] = {}
+
 
 def set_goal(guild_id: int, user_id: int, goal: str) -> None:
     """
@@ -90,7 +94,7 @@ def calculate_progress_check_frequency(work_duration_minutes: int) -> int:
 
 def should_check_progress(guild_id: int, user_id: int, work_duration_minutes: int) -> bool:
     """
-    進捗確認を行うべきかどうかを判定する
+    進捗確認を行うべきかどうかを判定する（ギルドベース）
     
     Args:
         guild_id: ギルドID
@@ -104,10 +108,11 @@ def should_check_progress(guild_id: int, user_id: int, work_duration_minutes: in
     if key not in session_goals:
         return False
     
-    check_count = increment_check_count(guild_id, user_id)
+    # ギルド全体の作業回数をチェック
+    guild_count = get_guild_work_count(guild_id)
     # 動的に計算した頻度を使用
     progress_check_frequency = calculate_progress_check_frequency(work_duration_minutes)
-    return check_count % progress_check_frequency == 0
+    return guild_count % progress_check_frequency == 0
 
 def remove_goal(guild_id: int, user_id: int) -> bool:
     """
@@ -300,3 +305,35 @@ def remove_non_goal_user_reactions_for_guild(guild_id: int) -> int:
         logger.debug(f"Removed non-goal user reactions for {count} users in guild {guild_id}")
     
     return count
+
+
+def increment_guild_work_count(guild_id: int) -> int:
+    """
+    ギルドの作業回数をインクリメントし、現在の回数を返す
+    
+    Args:
+        guild_id: ギルドID
+        
+    Returns:
+        現在の作業回数
+    """
+    if guild_id in guild_work_counts:
+        guild_work_counts[guild_id] += 1
+    else:
+        guild_work_counts[guild_id] = 1
+    
+    logger.debug(f"Guild {guild_id} work count incremented to {guild_work_counts[guild_id]}")
+    return guild_work_counts[guild_id]
+
+
+def get_guild_work_count(guild_id: int) -> int:
+    """
+    ギルドの現在の作業回数を取得する
+    
+    Args:
+        guild_id: ギルドID
+        
+    Returns:
+        現在の作業回数
+    """
+    return guild_work_counts.get(guild_id, 0)
