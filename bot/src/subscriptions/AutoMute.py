@@ -2,7 +2,7 @@ import logging
 
 from discord.ext.commands import Context
 from discord.channel import TextChannel, VoiceChannel
-from discord import User, Member
+from discord import User, Member, HTTPException
 
 from ..voice_client import vc_accessor
 from .Subscription import Subscription
@@ -45,10 +45,21 @@ class AutoMute(Subscription):
         else:
             await ctx.send(message)
 
-    async def safe_edit_member(self, member: Member, unmute=False):
+    async def safe_edit_member(self, member: Member, unmute=False, channel_name=None):
         """安全にメンバーの音声状態を編集する"""
         try:
             await member.edit(mute=not unmute)
+            action = "unmuted" if unmute else "muted"
+            logger.info(f"Successfully {action} {member.display_name}")
+        except HTTPException as e:
+            if e.code == 40032:  # Target user is not connected to voice
+                logger.info(f"Cannot edit {member.display_name}: User disconnected from voice")
+            elif e.code == 50013:  # Missing Permissions
+                action = "unmute" if unmute else "mute"
+                channel_info = f" in {channel_name}" if channel_name else ""
+                logger.info(f"Cannot {action} {member.display_name}: Missing permissions{channel_info}")
+            else:
+                logger.warning(f"Failed to edit member {member.display_name}: {e}")
         except Exception as e:
             logger.warning(f"Failed to edit member {member.display_name}: {e}")
 
