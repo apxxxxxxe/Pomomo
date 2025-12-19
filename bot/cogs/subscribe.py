@@ -7,6 +7,7 @@ from discord import app_commands, HTTPException
 from src.session import session_manager
 from src.voice_client import vc_accessor as vc_accessor, vc_manager as vc_manager
 from src.utils import voice_validation
+from src.subscriptions.AutoMute import AutoMutePermissionError
 from configs import bot_enum, user_messages as u_msg
 from configs.logging_config import get_logger
 
@@ -63,18 +64,29 @@ class Subscribe(commands.Cog):
                 logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user} (break state: {session.state})")
             else:
                 # 作業中の場合：AutoMute機能を有効にして即座にミュート
-                await auto_mute.handle_all(interaction, enable=True)
-                success_message = f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫'
                 try:
-                    await interaction.delete_original_response()
-                    await interaction.channel.send(success_message, silent=True)
-                except discord.errors.HTTPException as e:
-                    if e.code == 10062:  # Unknown interaction - already handled
+                    await auto_mute.handle_all(interaction, enable=True)
+                    success_message = f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫'
+                    try:
+                        await interaction.delete_original_response()
                         await interaction.channel.send(success_message, silent=True)
-                    else:
-                        logger.warning(f"Failed to delete original response: {e}")
-                        await interaction.channel.send(success_message, silent=True)
-                logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user} (work state: {session.state})")
+                    except discord.errors.HTTPException as e:
+                        if e.code == 10062:  # Unknown interaction - already handled
+                            await interaction.channel.send(success_message, silent=True)
+                        else:
+                            logger.warning(f"Failed to delete original response: {e}")
+                            await interaction.channel.send(success_message, silent=True)
+                    logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user} (work state: {session.state})")
+                except AutoMutePermissionError as permission_error:
+                    # 権限エラー時は持続的なephemeralメッセージを送信
+                    logger.warning(f"Permission error in enableautomute: {permission_error}")
+                    try:
+                        await interaction.delete_original_response()
+                    except:
+                        pass  # delete失敗は無視
+                    # 権限エラーメッセージを直接ephemeralで送信（消えない）
+                    await self._safe_interaction_response(interaction, str(permission_error), ephemeral=True)
+                    return  # 成功メッセージは送信しない
         except Exception as e:
             logger.error(f"Error in enableautomute: {e}")
             logger.exception("Exception details:")
@@ -159,6 +171,16 @@ class Subscribe(commands.Cog):
                 else:
                     logger.warning(f"Failed to delete original response: {e}")
                     await interaction.channel.send(success_message, silent=True)
+        except AutoMutePermissionError as permission_error:
+            # 権限エラー時は持続的なephemeralメッセージを送信
+            logger.warning(f"Permission error in disableautomute: {permission_error}")
+            try:
+                await interaction.delete_original_response()
+            except:
+                pass  # delete失敗は無視
+            # 権限エラーメッセージを直接ephemeralで送信（消えない）
+            await self._safe_interaction_response(interaction, str(permission_error), ephemeral=True)
+            return  # 成功メッセージは送信しない
         except Exception as e:
             logger.error(f"Error in disableautomute: {e}")
             logger.exception("Exception details:")

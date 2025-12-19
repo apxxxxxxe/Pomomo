@@ -14,6 +14,11 @@ logger = get_logger(__name__)
 ALL = "all"
 
 
+class AutoMutePermissionError(Exception):
+    """AutoMute機能での権限エラー"""
+    pass
+
+
 class AutoMute(Subscription):
 
     def __init__(self):
@@ -109,8 +114,9 @@ class AutoMute(Subscription):
         bot_member = voice_channel.guild.me
         bot_permissions = voice_channel.permissions_for(bot_member)
         if not (bot_permissions.mute_members or bot_permissions.administrator):
-            await self._send_message(ctx, f'ボットが `{voice_channel.name}` ボイスチャンネルでメンバーをミュートする権限を持っていません。\nbotアカウント `{bot_member.name}` へ `{voice_channel.name}` ボイスチャンネルでの「メンバーをミュートする」権限を付与してください。')
-            return
+            # 権限不足の場合は例外を投げる
+            permission_error_msg = f'ボットが `{voice_channel.name}` ボイスチャンネルでメンバーをミュートする権限を持っていません。\nbotアカウント `{bot_member.name}` へ `{voice_channel.name}` ボイスチャンネルでの「メンバーをミュートする」権限を付与してください。'
+            raise AutoMutePermissionError(permission_error_msg)
             
         # enableが明示的に指定されている場合はその値を使用、そうでなければトグル
         if enable is not None:

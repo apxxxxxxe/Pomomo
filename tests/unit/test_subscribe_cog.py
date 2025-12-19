@@ -1716,7 +1716,7 @@ class TestEnableAutoMuteEdgeCases:
         subscribe_cog = Subscribe(mock_bot)
         
         # Test case where handle_all raises permission error
-        from discord import Forbidden
+        from src.subscriptions.AutoMute import AutoMutePermissionError
         
         with patch('cogs.subscribe.session_manager') as mock_session_manager, \
              patch('cogs.subscribe.vc_accessor') as mock_vc_accessor, \
@@ -1734,13 +1734,29 @@ class TestEnableAutoMuteEdgeCases:
             mock_u_msg.AUTOMUTE_ENABLE_FAILED = "Permission error"
             
             # Make handle_all raise permission error
-            env['session'].auto_mute.handle_all.side_effect = Forbidden(MagicMock(), "Missing Permissions")
+            permission_error = AutoMutePermissionError("Missing Permissions")
+            env['session'].auto_mute.handle_all.side_effect = permission_error
+            
+            # Mock interaction response behavior
+            env['interaction'].response.is_done.return_value = True  # Simulate defer already called
+            env['interaction'].delete_original_response = AsyncMock()
+            env['interaction'].followup.send = AsyncMock()
             
             await subscribe_cog.enableautomute.callback(subscribe_cog, env['interaction'])
             
-            # Should handle permission error gracefully
-            mock_logger.error.assert_called_once()
-            env['interaction'].channel.send.assert_called_with("Permission error", silent=True)
+            # Should handle permission error gracefully with warning log (not error)
+            mock_logger.warning.assert_called_once()
+            
+            # Verify that the channel.send was NOT called (no success message)
+            env['interaction'].channel.send.assert_not_called()
+            
+            # Verify that delete_original_response was called (cleanup)
+            env['interaction'].delete_original_response.assert_called_once()
+            
+            # Verify that followup.send was called with ephemeral=True for permission error
+            env['interaction'].followup.send.assert_called_once()
+            call_args = env['interaction'].followup.send.call_args
+            assert call_args[1]['ephemeral'] is True
     
     @pytest.mark.asyncio
     async def test_enableautomute_multiple_voice_channels_scenario(self, mock_bot, edge_case_setup):
