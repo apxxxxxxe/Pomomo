@@ -48,7 +48,7 @@ async def transition(session: Session):
 async def auto_mute(session: Session):
     try:
         logger.debug(f"Auto mute for session in guild {session.ctx.guild.id} state {session.state}")
-        if session.state in [bot_enum.State.COUNTDOWN, bot_enum.State.POMODORO]:
+        if session.state in bot_enum.State.WORK_STATES:
             await session.auto_mute.mute(session.ctx)
         else:
             await session.auto_mute.unmute(session.ctx)

@@ -44,11 +44,19 @@ class Subscribe(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         
         try:
-            await auto_mute.handle_all(interaction, enable=True)
-            # defer()によるthinkingメッセージを削除して、チャンネルに送信
-            await interaction.delete_original_response()
-            await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
-            logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user}")
+            # 休憩中かどうかを確認
+            if session.state in bot_enum.State.BREAK_STATES:
+                # 休憩中の場合：AutoMute機能を有効にするが即座のミュートは行わない
+                auto_mute.all = True
+                await interaction.delete_original_response()
+                await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n現在は休憩中のため、次の作業時間開始時から強制ミュートが適用されます🤫', silent=True)
+                logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user} (break state: {session.state})")
+            else:
+                # 作業中の場合：AutoMute機能を有効にして即座にミュート
+                await auto_mute.handle_all(interaction, enable=True)
+                await interaction.delete_original_response()
+                await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
+                logger.info(f"Enabled automute for all users in {channel_name} by {interaction.user} (work state: {session.state})")
         except Exception as e:
             logger.error(f"Error in enableautomute: {e}")
             logger.exception("Exception details:")
@@ -149,7 +157,7 @@ class Subscribe(commands.Cog):
                 if session_vc and session_vc.id == before.channel.id:
                     auto_mute = session.auto_mute
                     if auto_mute.all:
-                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN, bot_enum.State.CLASSWORK] and \
+                        if session.state in bot_enum.State.WORK_STATES and \
                                 (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client):
                             logger.info(f"Unmuting {member.display_name} due to leaving automute channel")
                             try:
@@ -171,7 +179,7 @@ class Subscribe(commands.Cog):
                 if session_vc and session_vc.id == after.channel.id:
                     auto_mute = session.auto_mute
                     if auto_mute.all:
-                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN, bot_enum.State.CLASSWORK] and \
+                        if session.state in bot_enum.State.WORK_STATES and \
                                 (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and member.voice and not member.voice.mute:
                             logger.info(f"Muting {member.display_name} due to joining automute channel")
                             await auto_mute.safe_edit_member(member, unmute=False)

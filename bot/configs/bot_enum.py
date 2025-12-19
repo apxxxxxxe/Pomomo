@@ -17,6 +17,11 @@ class State:
         'CLASSWORK_BREAK': '休憩中'
     }
     
+    # 作業状態（ミュート対象）
+    WORK_STATES = [COUNTDOWN, POMODORO, CLASSWORK]
+    # 休憩状態（アンミュート対象）
+    BREAK_STATES = [SHORT_BREAK, LONG_BREAK, CLASSWORK_BREAK]
+    
     @classmethod
     def get_display_name(cls, state):
         return cls.DISPLAY_NAMES.get(state, state)
