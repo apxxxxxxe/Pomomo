@@ -265,11 +265,21 @@ class Subscribe(commands.Cog):
                             except HTTPException as e:
                                 if e.code == 40032:  # Target user is not connected to voice
                                     logger.info(f"Cannot unmute {member.display_name}: User disconnected from voice")
-                                    await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", silent=True)
+                                    await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートが解除できていません。\n一度ボイスチャンネルに再接続してから次のどちらかの手順を選んでください。\n1. **#{before.channel.name}** に戻って `/disableautomute` コマンドを実行する\n2. 別のボイスチャンネルに移動してから通話を離脱する", silent=True)
                                 elif e.code == 50013:  # Missing Permissions
                                     logger.info(f"Cannot unmute {member.display_name}: Missing permissions in destination channel")
                                     destination_channel = after.channel.name if after.channel else "不明なチャンネル"
-                                    await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　{destination_channel}でのミュート解除権限がないため、あなたのサーバミュートが解除できていません。\n次のどちらかの手順を選んでください。\n1. `/disableautomute` コマンドを実行する\n2. ミュート権限があるボイスチャンネルに移動してから通話を離脱する", silent=True)
+                                    
+                                    # ボットがミュート権限を持ち、セッション中でないボイスチャンネルを検索
+                                    guild = after.channel.guild if after.channel else before.channel.guild
+                                    available_voice_channel = self._find_available_voice_channel(guild, exclude_session_channels=True)
+                                    
+                                    if available_voice_channel:
+                                        message = f"ちょっと待って、{member.mention}！　{destination_channel}でのミュート解除権限がないため、あなたのサーバミュートが解除できていません。\n次のどちらかの手順を選んでください。\n1. **#{before.channel.name}** に戻って `/disableautomute` コマンドを実行する\n2. **#{available_voice_channel.name}** に移動してから通話を離脱する"
+                                    else:
+                                        message = f"ちょっと待って、{member.mention}！　{destination_channel}でのミュート解除権限がないため、あなたのサーバミュートが解除できていません。\n**#{before.channel.name}** に戻って `/disableautomute` コマンドを実行してください。"
+                                    
+                                    await session.ctx.channel.send(message, silent=True)
                                 else:
                                     logger.warning(f"Failed to unmute {member.display_name}: {e}")
                                     await session.ctx.channel.send(f"ちょっと待って、{member.mention}！　あなたのサーバミュートの解除でエラーが発生しました。\n`/disableautomute` コマンドを実行してください。", silent=True)
@@ -285,6 +295,12 @@ class Subscribe(commands.Cog):
         # 移動後のチャンネルが存在する場合
         if after.channel:
             logger.info(f'{member.display_name} joined the channel {after.channel.name}.')
+            
+            # サーバーミュート状態のユーザーを自動的にミュート解除
+            if after.mute:
+                logger.info(f'{member.display_name} is server muted, attempting auto-unmute')
+                await self._handle_server_muted_user_join(member, before, after)
+            
             session = vc_manager.get_connected_session(str(after.channel.guild.id))
             if session and session.ctx:
                 session_vc = vc_accessor.get_voice_channel(session.ctx)
@@ -295,6 +311,122 @@ class Subscribe(commands.Cog):
                                 (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and member.voice and not member.voice.mute:
                             logger.info(f"Muting {member.display_name} due to joining automute channel")
                             await auto_mute.safe_edit_member(member, unmute=False, channel_name=after.channel.name)
+
+    def _find_available_voice_channel(self, guild, exclude_session_channels=False):
+        """ボットがミュート権限を持つボイスチャンネルを検索
+        
+        Args:
+            guild: 対象のギルド
+            exclude_session_channels: セッション中チャンネルを除外するか
+        """
+        session_vc_id = None
+        if exclude_session_channels:
+            # アクティブなセッションのボイスチャンネルIDを取得
+            session = vc_manager.get_connected_session(str(guild.id))
+            if session and session.ctx:
+                session_vc = vc_accessor.get_voice_channel(session.ctx)
+                if session_vc:
+                    session_vc_id = str(session_vc.id)
+        
+        for vc in guild.voice_channels:
+            bot_permissions = vc.permissions_for(guild.me)
+            if bot_permissions.mute_members or bot_permissions.administrator:
+                # セッション除外が有効で、このチャンネルがセッション中の場合はスキップ
+                if exclude_session_channels and session_vc_id and str(vc.id) == session_vc_id:
+                    continue
+                return vc
+        return None
+
+    async def _handle_server_muted_user_join(self, member, before, after):
+        """サーバーミュート状態のユーザーがボイスチャンネルに参加した際の処理"""
+        try:
+            # セッション中チャンネルからの移動かをチェック（その場合は既存システムが処理するのでスキップ）
+            if before.channel:
+                session = vc_manager.get_connected_session(str(before.channel.guild.id))
+                if session and session.ctx:
+                    session_vc = vc_accessor.get_voice_channel(session.ctx)
+                    if session_vc and str(session_vc.id) == str(before.channel.id):
+                        auto_mute = session.auto_mute
+                        if auto_mute and hasattr(auto_mute, 'all') and auto_mute.all:
+                            logger.info(f"Skipping auto-unmute for {member.display_name} - moved from active automute session channel")
+                            return
+
+            # セッション中チャンネルかどうかをチェック（強制ミュート対象チャンネルは除外）
+            session = vc_manager.get_connected_session(str(after.channel.guild.id))
+            if session and session.ctx:
+                session_vc = vc_accessor.get_voice_channel(session.ctx)
+                if session_vc and str(session_vc.id) == str(after.channel.id):
+                    auto_mute = session.auto_mute
+                    if auto_mute and hasattr(auto_mute, 'all') and auto_mute.all and session.state in bot_enum.State.WORK_STATES:
+                        logger.info(f"Skipping auto-unmute for {member.display_name} - joined active automute session channel")
+                        return
+
+            # ボットがミュート権限を持つかチェック
+            bot_member = after.channel.guild.me
+            bot_permissions = after.channel.permissions_for(bot_member)
+            can_unmute = bot_permissions.mute_members or bot_permissions.administrator
+
+            if can_unmute:
+                # ミュート解除を試行
+                await member.edit(mute=False)
+                logger.info(f"Successfully auto-unmuted {member.display_name} in {after.channel.name}")
+            else:
+                # 権限がない場合、適切なテキストチャンネルで通知
+                logger.info(f"Cannot auto-unmute {member.display_name} in {after.channel.name}: Missing permissions")
+                await self._send_unmute_instruction(member, after.channel)
+
+        except HTTPException as e:
+            if e.code == 40032:  # Target user is not connected to voice
+                logger.info(f"Cannot auto-unmute {member.display_name}: User disconnected from voice")
+            elif e.code == 50013:  # Missing Permissions
+                logger.info(f"Cannot auto-unmute {member.display_name}: Missing permissions")
+                await self._send_unmute_instruction(member, after.channel)
+            else:
+                logger.warning(f"Failed to auto-unmute {member.display_name}: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error in auto-unmute for {member.display_name}: {e}")
+
+    async def _send_unmute_instruction(self, member, voice_channel):
+        """ミュート解除できない場合の通知を送信"""
+        try:
+            guild = voice_channel.guild
+            
+            # ボットがミュート権限を持つボイスチャンネルを検索
+            available_voice_channel = self._find_available_voice_channel(guild)
+            
+            # "ルーム１" または "General" テキストチャンネルを検索
+            target_channel = None
+            for channel in guild.text_channels:
+                if channel.name == "ルーム１" or channel.name == "General":
+                    # ボットが送信権限を持つかチェック
+                    bot_permissions = channel.permissions_for(guild.me)
+                    if bot_permissions.send_messages:
+                        target_channel = channel
+                        break
+            
+            # 見つからない場合は最初の利用可能なテキストチャンネルを使用
+            if not target_channel:
+                for channel in guild.text_channels:
+                    bot_permissions = channel.permissions_for(guild.me)
+                    if bot_permissions.send_messages:
+                        target_channel = channel
+                        break
+            
+            if target_channel:
+                # メッセージ内容を決定
+                if available_voice_channel:
+                    message = f"{member.mention} あなたのサーバーミュートを解除しようとしましたが、ボイスチャンネル **#{voice_channel.name}** ではPomomoに権限がありませんでした。\n別のボイスチャンネル、例えば **#{available_voice_channel.name}** に一旦移動してから戻ってきてください。"
+                    logger.info(f"Sent unmute instruction to {member.display_name} in #{target_channel.name} (suggested voice channel: #{available_voice_channel.name})")
+                else:
+                    message = f"{member.mention} あなたのサーバーミュートを解除しようとしましたが、ボイスチャンネル **#{voice_channel.name}** ではPomomoに権限がありませんでした。\n別のボイスチャンネルに一旦移動してから戻ってきてください。"
+                    logger.info(f"Sent unmute instruction to {member.display_name} in #{target_channel.name} (no suitable voice channel found)")
+                
+                await target_channel.send(message, silent=True)
+            else:
+                logger.warning(f"Could not find suitable text channel to send unmute instruction for {member.display_name}")
+                
+        except Exception as e:
+            logger.warning(f"Failed to send unmute instruction for {member.display_name}: {e}")
         
 async def setup(client):
     await client.add_cog(Subscribe(client))
