@@ -44,7 +44,7 @@ class Subscribe(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         
         try:
-            await auto_mute.handle_all(interaction)
+            await auto_mute.handle_all(interaction, enable=True)
             # defer()によるthinkingメッセージを削除して、チャンネルに送信
             await interaction.delete_original_response()
             await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/enableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオンにしました！\n参加者は作業時間の間は強制ミュートされます🤫', silent=True)
@@ -81,7 +81,7 @@ class Subscribe(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         
         try:
-            await auto_mute.handle_all(interaction)
+            await auto_mute.handle_all(interaction, enable=False)
             # defer()によるthinkingメッセージを削除して、チャンネルに送信
             await interaction.delete_original_response()
             await interaction.channel.send(f'> -# {interaction.user.display_name} さんが`/disableautomute`を使用しました\n{channel_name}ボイスチャンネルのautomuteをオフにしました', silent=True)
@@ -117,7 +117,7 @@ class Subscribe(commands.Cog):
                 
             # チャンネル変更がない場合はここで処理終了
             if before.channel == after.channel:
-                logger.debug(f'No channel change for {member.display_name}, but logged mute/deafen state changes if any.')
+                logger.info(f'No channel change for {member.display_name}, but logged mute/deafen state changes if any.')
                 return
 
         logger.info(f'Voice state update for {member.display_name}: {before.channel} -> {after.channel}')
@@ -149,9 +149,9 @@ class Subscribe(commands.Cog):
                 if session_vc and session_vc.id == before.channel.id:
                     auto_mute = session.auto_mute
                     if auto_mute.all:
-                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
+                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN, bot_enum.State.CLASSWORK] and \
                                 (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client):
-                            logger.debug(f"Unmuting {member.display_name}")
+                            logger.info(f"Unmuting {member.display_name} due to leaving automute channel")
                             try:
                                 await member.edit(mute=False)
                             except HTTPException as e:
@@ -168,12 +168,12 @@ class Subscribe(commands.Cog):
             session = vc_manager.get_connected_session(str(after.channel.guild.id))
             if session and session.ctx:
                 session_vc = vc_accessor.get_voice_channel(session.ctx)
-                if session_vc and session_vc.name == after.channel.name:
+                if session_vc and session_vc.id == after.channel.id:
                     auto_mute = session.auto_mute
                     if auto_mute.all:
-                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN] and \
+                        if session.state in [bot_enum.State.POMODORO, bot_enum.State.COUNTDOWN, bot_enum.State.CLASSWORK] and \
                                 (getattr(session.ctx, 'voice_client', None) or session.ctx.guild.voice_client) and member.voice and not member.voice.mute:
-                            logger.debug(f"Muting {member.display_name}")
+                            logger.info(f"Muting {member.display_name} due to joining automute channel")
                             await auto_mute.safe_edit_member(member, unmute=False)
         
 async def setup(client):

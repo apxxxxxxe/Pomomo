@@ -84,7 +84,7 @@ class AutoMute(Subscription):
             for member in vc_members:
                 await self.safe_edit_member(member, unmute=True)
 
-    async def handle_all(self, ctx):
+    async def handle_all(self, ctx, enable=None):
         logger.debug("Getting voice channel for automute")
         from ..voice_client import vc_accessor
         
@@ -101,9 +101,15 @@ class AutoMute(Subscription):
             await self._send_message(ctx, f'ボットが `{voice_channel.name}` ボイスチャンネルでメンバーをミュートする権限を持っていません。\nbotアカウント `{bot_member.name}` へ `{voice_channel.name}` ボイスチャンネルでの「メンバーをミュートする」権限を付与してください。')
             return
             
-        if self.all:
-            self.all = False
-            await self.unmute(ctx, ALL)
+        # enableが明示的に指定されている場合はその値を使用、そうでなければトグル
+        if enable is not None:
+            target_state = enable
         else:
+            target_state = not self.all
+            
+        if target_state and not self.all:
             self.all = True
             await self.mute(ctx, ALL)
+        elif not target_state and self.all:
+            self.all = False
+            await self.unmute(ctx, ALL)
