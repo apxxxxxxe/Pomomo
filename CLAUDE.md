@@ -40,6 +40,21 @@ pip list
 python -m pylint bot/main.py
 ```
 
+### テスト実行
+```bash
+# 全テストを実行（テスト環境変数付き）
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/ -v
+
+# ユニットテストのみ
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/unit/ -v
+
+# 特定のテストファイル実行
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/unit/test_basic.py -v
+
+# 特定のテストメソッド実行
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/unit/test_control_cog.py::TestControl::test_pomodoro_command_valid_parameters -v
+```
+
 ## アーキテクチャ
 
 ### コア構造
@@ -83,10 +98,34 @@ python -m pylint bot/main.py
 
 ## 完了時チェックリスト
 
-1. 構文エラーの確認: `python -m py_compile`で主要ファイルをチェック
-2. ボット起動確認: `python bot/main.py`で正常起動を確認
-3. 基本機能確認: Discordでボットがオンラインになることを確認
-4. 環境変数確認: DISCORD_TOKENが正しく設定されていることを確認
-5. 依存関係確認: requirements.txtに新しい依存関係があれば追加
+1. **構文エラーの確認**: `python -m py_compile`で主要ファイルをチェック
+2. **テスト実行**: `TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/ -v`でテストを実行し、全て成功することを確認
+3. **ボット起動確認**: `python bot/main.py`で正常起動を確認
+4. **基本機能確認**: Discordでボットがオンラインになることを確認
+5. **環境変数確認**: DISCORD_TOKENが正しく設定されていることを確認
+6. **依存関係確認**: requirements.txtに新しい依存関係があれば追加
 
-注意: このプロジェクトには自動テスト、lint、formatツールは設定されていません。手動でのコード品質チェックが必要です。
+## テスト方針
+
+### テスト構造
+- **tests/unit/**: ユニットテスト（個別コンポーネントのテスト）
+- **tests/integration/**: 統合テスト（複数コンポーネント間の連携テスト）
+- **tests/mocks/**: Discordオブジェクト用のモッククラス
+  - discord_mocks.py: Discord API関連のモック（Bot, User, Guild, Channelなど）
+  - voice_mocks.py: 音声機能関連のモック（VoiceClient, AudioSourceなど）
+- **tests/conftest.py**: pytestの設定とフィクスチャ定義
+
+### テスト方針の特徴
+1. **Discord APIをモック化**: 実際のDiscord APIを呼び出さずにテスト実行
+2. **非同期処理のサポート**: async/awaitを使ったコードのテストに対応
+3. **環境分離**: `TESTING=1`環境変数でテスト環境を識別
+4. **フィクスチャベース**: pytest fixtureを活用した再利用可能なテストセットアップ
+5. **モジュール独立性**: 各Cogや機能ごとに独立したテストファイル
+
+### テスト実装時の注意点
+- Discord関連のオブジェクトは必ずmocksディレクトリのモッククラスを使用
+- 非同期メソッドには`@pytest.mark.asyncio`デコレータを付与
+- `PYTHONPATH`にbotディレクトリを追加してモジュールインポートを可能にする
+- 実際のDiscord API呼び出しやファイルI/Oは避ける
+
+注意: このプロジェクトには自動lint、formatツールは設定されていませんが、pytestベースの自動テストは実装されています。
