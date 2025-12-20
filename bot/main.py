@@ -60,6 +60,17 @@ async def on_ready():
         logger.error(f'Failed to sync commands: {e}')
         logger.exception("Exception details:")
     
+    # セッション永続化からの復旧
+    try:
+        recovered_count = await session_manager.recover_sessions_from_persistence(bot)
+        if recovered_count > 0:
+            logger.info(f"Recovered {recovered_count} session(s) from persistence")
+        else:
+            logger.info("No sessions to recover from persistence")
+    except Exception as e:
+        logger.error(f"Failed to recover sessions from persistence: {e}")
+        logger.exception("Exception details:")
+    
     try:
         kill_idle_sessions.start()
         logger.info("Started kill_idle_sessions task")
@@ -208,6 +219,20 @@ async def main():
         logger.critical(f"Failed to start bot: {e}")
         logger.exception("Exception details:")
         raise
+    finally:
+        # 終了時にアクティブセッションを保存
+        try:
+            saved_count = await session_manager.save_all_active_sessions()
+            if saved_count > 0:
+                logger.info(f"Saved {saved_count} active session(s) before shutdown")
+            
+            # 永続化ストアを閉じる
+            from src.persistence.session_store import close_session_store
+            close_session_store()
+            logger.info("Session store closed")
+        except Exception as e:
+            logger.error(f"Error during session cleanup: {e}")
+            logger.exception("Exception details:")
 
 if __name__ == '__main__':
     import asyncio
