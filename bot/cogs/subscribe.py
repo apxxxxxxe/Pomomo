@@ -408,6 +408,40 @@ class Subscribe(commands.Cog):
         except Exception as e:
             logger.warning(f"Unexpected error in auto-unmute for {member.display_name}: {e}")
 
+    def _find_target_text_channel(self, guild, voice_channel):
+        """メッセージ送信先のテキストチャンネルを優先順位に基づいて選択
+        
+        Args:
+            guild: Discord guild object
+            voice_channel: ユーザーが入っているボイスチャンネル
+        
+        Returns:
+            discord.TextChannel: メッセージ送信先のテキストチャンネル、見つからない場合はNone
+        """
+        # 1. ボイスチャンネルと同名のテキストチャンネルを検索
+        for channel in guild.text_channels:
+            if channel.name == voice_channel.name:
+                # ボットが送信権限を持つかチェック
+                bot_permissions = channel.permissions_for(guild.me)
+                if bot_permissions.send_messages:
+                    return channel
+        
+        # 2. "General" テキストチャンネルを検索
+        for channel in guild.text_channels:
+            if channel.name == "General":
+                # ボットが送信権限を持つかチェック
+                bot_permissions = channel.permissions_for(guild.me)
+                if bot_permissions.send_messages:
+                    return channel
+        
+        # 3. 最初の利用可能なテキストチャンネルを使用
+        for channel in guild.text_channels:
+            bot_permissions = channel.permissions_for(guild.me)
+            if bot_permissions.send_messages:
+                return channel
+        
+        return None
+
     async def _send_unmute_instruction(self, member, voice_channel):
         """ミュート解除できない場合の通知を送信"""
         try:
@@ -416,23 +450,8 @@ class Subscribe(commands.Cog):
             # ボットがミュート権限を持つボイスチャンネルを検索
             available_voice_channel = self._find_available_voice_channel(guild)
             
-            # "ルーム１" または "General" テキストチャンネルを検索
-            target_channel = None
-            for channel in guild.text_channels:
-                if channel.name == "ルーム１" or channel.name == "General":
-                    # ボットが送信権限を持つかチェック
-                    bot_permissions = channel.permissions_for(guild.me)
-                    if bot_permissions.send_messages:
-                        target_channel = channel
-                        break
-            
-            # 見つからない場合は最初の利用可能なテキストチャンネルを使用
-            if not target_channel:
-                for channel in guild.text_channels:
-                    bot_permissions = channel.permissions_for(guild.me)
-                    if bot_permissions.send_messages:
-                        target_channel = channel
-                        break
+            # 新しいチャンネル選択ロジックを使用
+            target_channel = self._find_target_text_channel(guild, voice_channel)
             
             if target_channel:
                 # メッセージ内容を決定
