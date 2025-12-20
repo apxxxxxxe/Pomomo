@@ -10,6 +10,7 @@ from tests.mocks.voice_mocks import MockVoiceClient
 
 # Import the cog under test
 from cogs.control import Control
+from configs import bot_enum
 
 
 class TestControl:
@@ -197,6 +198,25 @@ class TestSkipCommandComprehensive:
     """Comprehensive tests for skip command with various session states"""
     
     @pytest.fixture
+    def control_cog(self, mock_bot):
+        """Fixture providing a Control cog instance"""
+        return Control(mock_bot)
+    
+    @pytest.fixture
+    def setup_interaction(self):
+        """Fixture providing test interaction setup"""
+        user = MockUser(id=12345, name="TestUser")
+        guild = MockGuild(id=54321, name="TestGuild")
+        voice_channel = MockVoiceChannel(guild=guild, name="Test Channel")
+        interaction = MockInteraction(user=user, guild=guild)
+        
+        # Mock user being in voice channel
+        interaction.user.voice = MagicMock()
+        interaction.user.voice.channel = voice_channel
+        
+        return interaction
+    
+    @pytest.fixture
     def skip_test_setup(self):
         """Fixture providing test setup for skip command tests"""
         user = MockUser(id=12345, name="SkipTestUser")
@@ -216,10 +236,9 @@ class TestSkipCommandComprehensive:
         }
     
     @pytest.mark.asyncio
-    async def test_skip_during_countdown_state_rejected(self, mock_bot, skip_test_setup):
+    async def test_skip_during_countdown_state_rejected(self, control_cog, skip_test_setup):
         """Test that skip is rejected during COUNTDOWN state"""
         env = skip_test_setup
-        control_cog = Control(mock_bot)
         
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
@@ -242,10 +261,9 @@ class TestSkipCommandComprehensive:
             )
     
     @pytest.mark.asyncio  
-    async def test_skip_during_pomodoro_state(self, mock_bot, skip_test_setup):
+    async def test_skip_during_pomodoro_state(self, control_cog, skip_test_setup):
         """Test skip during POMODORO state (should succeed with stats adjustment)"""
         env = skip_test_setup
-        control_cog = Control(mock_bot)
         
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
@@ -286,10 +304,9 @@ class TestSkipCommandComprehensive:
             mock_controller.resume.assert_called_once_with(mock_session)
     
     @pytest.mark.asyncio
-    async def test_skip_during_short_break_state(self, mock_bot, skip_test_setup):
+    async def test_skip_during_short_break_state(self, control_cog, skip_test_setup):
         """Test skip during SHORT_BREAK state (should succeed without stats adjustment)"""
         env = skip_test_setup
-        control_cog = Control(mock_bot)
         
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
@@ -325,10 +342,9 @@ class TestSkipCommandComprehensive:
             mock_controller.resume.assert_called_once_with(mock_session)
     
     @pytest.mark.asyncio
-    async def test_skip_during_long_break_state(self, mock_bot, skip_test_setup):
+    async def test_skip_during_long_break_state(self, control_cog, skip_test_setup):
         """Test skip during LONG_BREAK state"""
         env = skip_test_setup
-        control_cog = Control(mock_bot)
         
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
@@ -363,10 +379,9 @@ class TestSkipCommandComprehensive:
             mock_controller.resume.assert_called_once_with(mock_session)
     
     @pytest.mark.asyncio
-    async def test_skip_during_classwork_state(self, mock_bot, skip_test_setup):
+    async def test_skip_during_classwork_state(self, control_cog, skip_test_setup):
         """Test skip during CLASSWORK state"""
         env = skip_test_setup
-        control_cog = Control(mock_bot)
         
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
@@ -401,10 +416,9 @@ class TestSkipCommandComprehensive:
             mock_controller.resume.assert_called_once_with(mock_session)
     
     @pytest.mark.asyncio
-    async def test_skip_during_classwork_break_state(self, mock_bot, skip_test_setup):
+    async def test_skip_during_classwork_break_state(self, control_cog, skip_test_setup):
         """Test skip during CLASSWORK_BREAK state"""
         env = skip_test_setup
-        control_cog = Control(mock_bot)
         
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
@@ -959,14 +973,18 @@ class TestControlEdgeCases:
 class TestSkipStatisticsAdjustment:
     """統計値調整の詳細テスト"""
 
+    @pytest.fixture
+    def control_cog(self, mock_bot):
+        """Fixture providing a Control cog instance"""
+        return Control(mock_bot)
+
     @pytest.mark.asyncio
-    async def test_pomodoro_skip_decrements_stats(self, mock_bot):
+    async def test_pomodoro_skip_decrements_stats(self, control_cog):
         """POMODORO状態でのスキップが統計値を正しく減算することを検証"""
         
         user = MockUser(id=12345, name="TestUser")
         guild = MockGuild(id=54321, name="TestGuild")
         interaction = MockInteraction(user=user, guild=guild)
-        control_cog = Control(mock_bot)
         
         # セッションとモックを設定
         mock_session = MagicMock()
@@ -1125,6 +1143,11 @@ class TestSkipStatisticsAdjustment:
 class TestSkipErrorCases:
     """スキップコマンドのエラーケーステスト"""
 
+    @pytest.fixture
+    def control_cog(self, mock_bot):
+        """Fixture providing a Control cog instance"""
+        return Control(mock_bot)
+
     @pytest.mark.asyncio
     async def test_skip_no_active_session(self, control_cog):
         """アクティブなセッションがない場合のエラー処理"""
@@ -1266,6 +1289,11 @@ class TestSkipErrorCases:
 
 class TestSkipStateTransitionAndNotifications:
     """スキップコマンドの状態遷移と通知テスト"""
+
+    @pytest.fixture
+    def control_cog(self, mock_bot):
+        """Fixture providing a Control cog instance"""
+        return Control(mock_bot)
 
     @pytest.mark.asyncio
     async def test_skip_calls_transition(self, control_cog):
@@ -1429,6 +1457,11 @@ class TestSkipStateTransitionAndNotifications:
 
 class TestSkipEdgeCasesExtended:
     """スキップコマンドのエッジケース拡張テスト"""
+
+    @pytest.fixture
+    def control_cog(self, mock_bot):
+        """Fixture providing a Control cog instance"""
+        return Control(mock_bot)
 
     @pytest.mark.asyncio
     async def test_skip_concurrent_execution_protection(self, control_cog):
