@@ -1,0 +1,22 @@
+[project]
+name = "pomomo"
+version = "0.1.0"
+description = "Discord Pomodoro Bot - Discord上でPomodoro技術を実装するボット"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "discord-py==2.6.3",
+    "psutil==6.1.1",
+    "pynacl==1.6.0",
+    "python-dotenv==1.1.1",
+    "pyyaml==6.0.3",
+    "tinydb==4.8.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==7.4.4",
+    "pytest-asyncio==0.23.2",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.12.0",
+]

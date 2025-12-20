@@ -12,11 +12,8 @@ Pomomoは、Discord上でPomodoro技術を実装するボットです。作業�
 
 ### 環境セットアップ
 ```bash
-# 仮想環境作成
-python -m venv venv
-
 # 依存関係インストール
-pip install -r requirements.txt
+uv sync
 
 # 環境変数設定（.envファイルに以下を設定）
 DISCORD_TOKEN=your_discord_bot_token
@@ -25,34 +22,34 @@ DISCORD_TOKEN=your_discord_bot_token
 ### ボット実行
 ```bash
 # メイン実行方法
-cd bot && python main.py
+uv run python bot/main.py
 ```
 
 ### 開発時の確認コマンド
 ```bash
 # Python環境確認
-python --version
+uv run python --version
 
 # 依存関係一覧
-pip list
+uv tree
 
 # 構文チェック
-python -m pylint bot/main.py
+uv run python -m pylint bot/main.py
 ```
 
 ### テスト実行
 ```bash
 # 全テストを実行（テスト環境変数付き）
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/ -v
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/ -v
 
 # ユニットテストのみ
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/unit/ -v
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/ -v
 
 # 特定のテストファイル実行
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/unit/test_basic.py -v
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/test_basic.py -v
 
 # 特定のテストメソッド実行
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot pytest tests/unit/test_control_cog.py::TestControl::test_pomodoro_command_valid_parameters -v
+TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/test_control_cog.py::TestControl::test_pomodoro_command_valid_parameters -v
 ```
 
 ## アーキテクチャ
