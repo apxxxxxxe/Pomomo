@@ -111,23 +111,33 @@ async def cleanup_pins(session: Session):
 
 
 async def end(session: Session):
-    logger.info(f"Ending session for guild {session.ctx.guild.id}")
     ctx = session.ctx
     
-    # セッション終了時に該当ギルドの全ての目標と非対象ユーザーのリアクション記録を削除
-    guild_id = session.ctx.guild.id
-    removed_goals = goal_manager.remove_all_goals_for_guild(guild_id)
-    removed_reactions = goal_manager.remove_non_goal_user_reactions_for_guild(guild_id)
-    if removed_goals > 0:
-        logger.info(f"Removed {removed_goals} goals at session end for guild {guild_id}")
-    if removed_reactions > 0:
-        logger.info(f"Removed non-goal user reactions for {removed_reactions} users at session end for guild {guild_id}")
+    # Skip context-dependent operations if ctx is None (recovered sessions)
+    if ctx is None:
+        logger.info("Ending session without context (recovered session)")
+        guild_id = None  # We can't determine guild_id without ctx
+    else:
+        logger.info(f"Ending session for guild {ctx.guild.id}")
+        guild_id = ctx.guild.id
     
-    # mute モードでない場合のみ unmute を実行
-    if not getattr(session, 'is_muted_mode', False):
-        await session.auto_mute.unmute(ctx)
-    if vc_accessor.get_voice_client(ctx):
-        await vc_manager.disconnect(session)
+    # セッション終了時に該当ギルドの全ての目標と非対象ユーザーのリアクション記録を削除
+    if guild_id is not None:
+        removed_goals = goal_manager.remove_all_goals_for_guild(guild_id)
+        removed_reactions = goal_manager.remove_non_goal_user_reactions_for_guild(guild_id)
+        if removed_goals > 0:
+            logger.info(f"Removed {removed_goals} goals at session end for guild {guild_id}")
+        if removed_reactions > 0:
+            logger.info(f"Removed non-goal user reactions for {removed_reactions} users at session end for guild {guild_id}")
+    
+    # context-dependent operations only if ctx is available
+    if ctx is not None:
+        # mute モードでない場合のみ unmute を実行
+        if not getattr(session, 'is_muted_mode', False):
+            await session.auto_mute.unmute(ctx)
+        if vc_accessor.get_voice_client(ctx):
+            await vc_manager.disconnect(session)
+    
     await session_manager.deactivate(session)
 
 

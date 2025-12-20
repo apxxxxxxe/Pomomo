@@ -93,6 +93,10 @@ def session_id_from(ctx) -> str:
 async def kill_if_idle(session: Session):
     ctx = session.ctx
     
+    # Skip if ctx is None (recovered sessions without context)
+    if ctx is None:
+        return False
+    
     # Skip idle check for Interaction-based sessions for now
     if hasattr(ctx, 'client'):  # This is an Interaction
         return False

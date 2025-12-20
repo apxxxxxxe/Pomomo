@@ -40,7 +40,13 @@ async def kill_idle_sessions():
             try:
                 await session_manager.kill_if_idle(session)
             except Exception as e:
-                logger.error(f"Error killing idle session {session.ctx.guild.id}: {e}")
+                # Safe error logging for sessions without ctx
+                if session.ctx is not None:
+                    guild_id = session.ctx.guild.id
+                    logger.error(f"Error killing idle session {guild_id}: {e}")
+                else:
+                    logger.error(f"Error killing idle session (no context): {e}")
+                logger.exception("Exception details:")
     except Exception as e:
         logger.error(f"Error in kill_idle_sessions task: {e}")
         logger.exception("Exception details:")
