@@ -25,7 +25,7 @@ class TestAutoMuteBasicFunctionality:
         self.subscribe_cog = Subscribe(self.bot)
         self.guild = MockGuild(id=12345)
         self.voice_channel = MockVoiceChannel(id=67890, name="test-voice", guild=self.guild)
-        self.automute = AutoMute(self.bot, self.guild.id, self.voice_channel)
+        self.automute = AutoMute()
     
     @pytest.mark.asyncio
     async def test_mute_member_success(self):

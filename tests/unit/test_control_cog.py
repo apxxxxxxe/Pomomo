@@ -274,7 +274,7 @@ class TestSkipCommandComprehensive:
             
             # Mock session with POMODORO state
             mock_session = MagicMock()
-            mock_session.state = bot_enum.State.POMODORO
+            mock_session.state = 'POMODORO'  # Use string, match mock_bot_enum value
             mock_session.stats.pomos_completed = 2
             mock_session.stats.seconds_completed = 3000
             mock_session.settings.duration = 25
@@ -285,10 +285,6 @@ class TestSkipCommandComprehensive:
             mock_controller.resume = AsyncMock()
             mock_bot_enum.State.POMODORO = 'POMODORO'
             mock_bot_enum.State.get_display_name = MagicMock(side_effect=lambda x: f"display_{x}")
-            
-            # Mock state after transition
-            old_state = mock_session.state
-            mock_session.state = 'SHORT_BREAK'  # After transition
             
             await control_cog.skip.callback(control_cog, env['interaction'])
             

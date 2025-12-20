@@ -45,7 +45,7 @@ class TestConcurrentSessionManagement:
         
         # 全セッションを同時作成
         tasks = [
-            self.control_cog.pomodoro(interaction, 25, 5, 15)
+            self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
             for interaction in interactions
         ]
         
@@ -79,11 +79,11 @@ class TestConcurrentSessionManagement:
         
         # 並行してセッション操作実行
         tasks = [
-            self.control_cog.pomodoro(interactions[0], 25, 5, 15),  # セッション作成
-            self.control_cog.stop(interactions[1]),  # 停止試行
-            self.control_cog.skip(interactions[2]),  # スキップ試行
-            self.control_cog.pomodoro(interactions[3], 30, 5, 15),  # 別セッション作成試行
-            self.control_cog.stop(interactions[4])   # 停止試行
+            self.control_cog.pomodoro.callback(self.control_cog, interactions[0], 25, 5, 15),  # セッション作成
+            self.control_cog.stop.callback(self.control_cog, interactions[1]),  # 停止試行
+            self.control_cog.skip.callback(self.control_cog, interactions[2]),  # スキップ試行
+            self.control_cog.pomodoro.callback(self.control_cog, interactions[3], 30, 5, 15),  # 別セッション作成試行
+            self.control_cog.stop.callback(self.control_cog, interactions[4])   # 停止試行
         ]
         
         # 並行実行（競合状態のテスト）
@@ -104,15 +104,15 @@ class TestConcurrentSessionManagement:
         
         # セッション作成と削除の競合
         async def create_session():
-            await self.control_cog.pomodoro(interaction, 25, 5, 15)
+            await self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
         
         async def stop_session():
             await asyncio.sleep(0.1)  # 少し遅らせる
-            await self.control_cog.stop(interaction)
+            await self.control_cog.stop.callback(self.control_cog, interaction)
         
         async def skip_session():
             await asyncio.sleep(0.05)
-            await self.control_cog.skip(interaction)
+            await self.control_cog.skip.callback(self.control_cog, interaction)
         
         # 並行実行
         results = await asyncio.gather(
@@ -239,14 +239,14 @@ class TestResourceManagement:
             
             # セッション作成
             create_tasks = [
-                self.control_cog.pomodoro(interaction, 25, 5, 15)
+                self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
                 for interaction in interactions
             ]
             await asyncio.gather(*create_tasks, return_exceptions=True)
             
             # セッション削除
             stop_tasks = [
-                self.control_cog.stop(interaction)
+                self.control_cog.stop.callback(self.control_cog, interaction)
                 for interaction in interactions
             ]
             await asyncio.gather(*stop_tasks, return_exceptions=True)
@@ -281,7 +281,7 @@ class TestResourceManagement:
             if i % 3 == 0:  # 1/3の確率でエラー
                 interaction.response.send_message = AsyncMock(side_effect=Exception("Random error"))
             
-            task = self.control_cog.pomodoro(interaction, 25, 5, 15)
+            task = self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
             tasks.append(task)
         
         # 並行実行
@@ -350,7 +350,7 @@ class TestThreadSafetyAndLocking:
             interaction.user.voice = MagicMock()
             interaction.user.voice.channel = voice_channel
             
-            await self.control_cog.pomodoro(interaction, 25, 5, 15)
+            await self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
             
             end_time = time.time()
             lock_acquisition_times.append(end_time - start_time)
@@ -377,14 +377,14 @@ class TestThreadSafetyAndLocking:
             interaction1.user.voice = MagicMock()
             interaction1.user.voice.channel = voice_channel1
             
-            await self.control_cog.pomodoro(interaction1, 25, 5, 15)
+            await self.control_cog.pomodoro.callback(self.control_cog, interaction1, 25, 5, 15)
             await asyncio.sleep(0.1)
             
             interaction2 = MockInteraction(guild=guild2)
             interaction2.user.voice = MagicMock()
             interaction2.user.voice.channel = voice_channel2
             
-            await self.control_cog.pomodoro(interaction2, 25, 5, 15)
+            await self.control_cog.pomodoro.callback(self.control_cog, interaction2, 25, 5, 15)
         
         async def operation_sequence_2():
             # ギルド2 -> ギルド1の順でリソースアクセス
@@ -392,14 +392,14 @@ class TestThreadSafetyAndLocking:
             interaction2.user.voice = MagicMock()
             interaction2.user.voice.channel = voice_channel2
             
-            await self.control_cog.pomodoro(interaction2, 30, 5, 15)
+            await self.control_cog.pomodoro.callback(self.control_cog, interaction2, 30, 5, 15)
             await asyncio.sleep(0.1)
             
             interaction1 = MockInteraction(guild=guild1)
             interaction1.user.voice = MagicMock()
             interaction1.user.voice.channel = voice_channel1
             
-            await self.control_cog.pomodoro(interaction1, 30, 5, 15)
+            await self.control_cog.pomodoro.callback(self.control_cog, interaction1, 30, 5, 15)
         
         # デッドロックが発生しないことを確認（タイムアウト付き）
         start_time = time.time()
@@ -442,7 +442,7 @@ class TestConcurrentErrorHandling:
                     side_effect=Exception(f"Error in guild {i}")
                 )
             
-            task = self.control_cog.pomodoro(interaction, 25, 5, 15)
+            task = self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
             tasks.append((task, i, i in error_guild_indices))
         
         # 並行実行
@@ -474,7 +474,7 @@ class TestConcurrentErrorHandling:
                 side_effect=Exception(f"Error at {delay}s")
             )
             
-            return await self.control_cog.pomodoro(interaction, 25, 5, 15)
+            return await self.control_cog.pomodoro.callback(self.control_cog, interaction, 25, 5, 15)
         
         # 段階的エラー実行
         tasks = [delayed_error_operation(delay) for delay in error_intervals]
@@ -490,5 +490,5 @@ class TestConcurrentErrorHandling:
         normal_interaction.user.voice.channel = normal_voice_channel
         
         # 正常操作が成功することを確認
-        normal_result = await self.control_cog.pomodoro(normal_interaction, 25, 5, 15)
+        normal_result = await self.control_cog.pomodoro.callback(self.control_cog, normal_interaction, 25, 5, 15)
         # 実装に応じて成功条件を確認
