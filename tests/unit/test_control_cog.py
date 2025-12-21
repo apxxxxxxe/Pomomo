@@ -52,6 +52,8 @@ class TestControl:
             
             # Mock session creation
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Execute command
@@ -468,6 +470,8 @@ class TestSkipCommandComprehensive:
             
             # Mock session creation
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Mock session manager to ensure no active sessions
@@ -506,6 +510,8 @@ class TestSkipCommandComprehensive:
             
             # Mock session creation
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Mock the validation methods
@@ -626,6 +632,8 @@ class TestControlEdgeCases:
             mock_settings.is_valid_interaction = AsyncMock(return_value=True)
             mock_controller.start_pomodoro = AsyncMock()
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Test with minimum values (1 minute each, 1 interval)
@@ -649,6 +657,8 @@ class TestControlEdgeCases:
             mock_settings.is_valid_interaction = AsyncMock(return_value=True)
             mock_controller.start_pomodoro = AsyncMock()
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Test with maximum values (120 minutes each, 8 intervals)
@@ -676,6 +686,8 @@ class TestControlEdgeCases:
             mock_session_manager.active_sessions = {}
             mock_session_manager.session_id_from.return_value = "test_session_id"
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Test with very short countdown (1 minute)
@@ -707,6 +719,8 @@ class TestControlEdgeCases:
             mock_settings.is_valid_interaction = AsyncMock(return_value=True)
             mock_controller.start_classwork = AsyncMock()
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Mock start_locks
@@ -902,6 +916,8 @@ class TestControlEdgeCases:
             
             mock_settings.is_valid_interaction = AsyncMock(return_value=True)
             mock_session = MagicMock()
+            mock_session.ctx.send = AsyncMock()
+            mock_session.ctx.channel.send = AsyncMock()
             mock_session_class.return_value = mock_session
             
             # Test session controller throwing exception
