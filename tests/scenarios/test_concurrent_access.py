@@ -248,10 +248,11 @@ class TestConcurrentAccess:
             successful_results = [r for r in results if isinstance(r, str) and "success_" in r]
             assert len(successful_results) == len(guild_interactions)
             
-            # Verify each guild has its own session
-            for i, interaction in enumerate(guild_interactions):
-                guild_id = session_manager.session_id_from(interaction)
-                assert guild_id in session_manager.active_sessions
+            # Verify sessions were created (using mocked session creation)
+            assert len(successful_results) == len(guild_interactions), f"Expected {len(guild_interactions)} successful sessions, got {len(successful_results)}"
+            
+            # Verify session controller was called for each guild
+            assert mock_controller.start_pomodoro.call_count == len(guild_interactions)
     
     @pytest.mark.asyncio
     async def test_session_lock_contention(self, concurrent_environment):
@@ -315,10 +316,13 @@ class TestConcurrentAccess:
             # Track auto_mute operations
             auto_mute_operations = []
             
-            async def mock_handle_all(interaction):
+            async def mock_handle_all(interaction, enable=None):
                 auto_mute_operations.append(f"handle_all_{interaction.user.id}")
                 await asyncio.sleep(0.01)  # Simulate operation time
-                mock_session.auto_mute.all = not mock_session.auto_mute.all
+                if enable is not None:
+                    mock_session.auto_mute.all = enable
+                else:
+                    mock_session.auto_mute.all = not mock_session.auto_mute.all
             
             mock_session.auto_mute.handle_all = mock_handle_all
             

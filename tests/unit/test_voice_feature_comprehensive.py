@@ -229,6 +229,8 @@ class TestVoicePlayer:
         
         # モックのVoiceClientを設定
         mock_voice_client = MockVoiceClient()
+        # playメソッドをMagicMockに置き換えてアサーションを可能にする
+        mock_voice_client.play = MagicMock()
         interaction.guild.voice_client = mock_voice_client
         
         with patch('discord.FFmpegPCMAudio') as mock_audio:
@@ -460,6 +462,8 @@ class TestVoiceConnectionLifecycle:
         
         # 2. 音声再生
         interaction.guild.voice_client = mock_voice_client  # voice_clientを設定
+        # playメソッドをMagicMockに置き換えてアサーションを可能にする
+        mock_voice_client.play = MagicMock()
         with patch('discord.FFmpegPCMAudio') as mock_audio:
             with patch('discord.PCMVolumeTransformer') as mock_transformer:
                 mock_source = Mock()

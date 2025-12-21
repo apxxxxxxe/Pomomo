@@ -39,17 +39,17 @@ uv run python -m pylint bot/main.py
 
 ### テスト実行
 ```bash
-# 全テストを実行（テスト環境変数付き）
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/ -v
+# 全テストを実行（テスト環境変数付き、警告抑制）
+PYTHONWARNINGS=ignore TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/ -v
 
 # ユニットテストのみ
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/ -v
+PYTHONWARNINGS=ignore TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/ -v
 
 # 特定のテストファイル実行
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/test_basic.py -v
+PYTHONWARNINGS=ignore TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/test_basic.py -v
 
 # 特定のテストメソッド実行
-TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/test_control_cog.py::TestControl::test_pomodoro_command_valid_parameters -v
+PYTHONWARNINGS=ignore TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run pytest tests/unit/test_control_cog.py::TestControl::test_pomodoro_command_valid_parameters -v
 ```
 
 ## アーキテクチャ
@@ -106,7 +106,13 @@ TESTING=1 PYTHONPATH=/home/applepie/ghq/github.com/apxxxxxxe/Pomomo/bot uv run p
 
 ### テスト構造
 - **tests/unit/**: ユニットテスト（個別コンポーネントのテスト）
+  - 基本機能テスト、Cogテスト、セッション管理、音声機能、権限エラー処理、パフォーマンステストなど18個のテストファイル
 - **tests/integration/**: 統合テスト（複数コンポーネント間の連携テスト）
+  - フルPomodoroセッション、セッションライフサイクル、音声統合のテスト
+- **tests/scenarios/**: シナリオベーステスト（複雑な操作フローのテスト）
+  - 並行アクセス、エラー復旧のシナリオテスト
+- **tests/performance/**: パフォーマンステスト
+  - 長時間実行セッション、メモリ使用量のテスト
 - **tests/mocks/**: Discordオブジェクト用のモッククラス
   - discord_mocks.py: Discord API関連のモック（Bot, User, Guild, Channelなど）
   - voice_mocks.py: 音声機能関連のモック（VoiceClient, AudioSourceなど）

@@ -57,11 +57,8 @@ class MockVoiceClient:
         # Current source
         self.source = None
         
-        # Mock methods
-        self.play = MagicMock()
-        self.pause = MagicMock()
-        self.resume = MagicMock()
-        self.stop = MagicMock()
+        # Mock async methods - don't define play/pause/resume/stop as MagicMock
+        # since they're implemented as actual methods below
         self.disconnect = AsyncMock()
         self.move_to = AsyncMock()
         self.cleanup = MagicMock()

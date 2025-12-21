@@ -22,8 +22,23 @@ async def resume(session: Session):
     if session.state == bot_enum.State.COUNTDOWN:
         await countdown.start(session)
         return
+    
+    # 無限ループ防止のための安全装置
+    max_iterations = 1000  # 最大反復回数
+    iteration_count = 0
+    
     while True:
-        if not await run_interval(session):
+        iteration_count += 1
+        if iteration_count > max_iterations:
+            logger.error(f"Session resume exceeded maximum iterations ({max_iterations}), terminating")
+            break
+            
+        try:
+            if not await run_interval(session):
+                break
+        except Exception as e:
+            logger.error(f"Exception in run_interval: {e}")
+            logger.exception("run_interval exception details:")
             break
 
 

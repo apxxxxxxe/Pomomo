@@ -286,6 +286,7 @@ class TestFullPomodoroSession:
             mock_voice_validation.require_same_voice_channel = AsyncMock(return_value=True)
             mock_state_handler.transition = AsyncMock()
             mock_controller.end = AsyncMock()
+            mock_controller.resume = AsyncMock()
             mock_player.alert = AsyncMock()
             
             # Test that voice operations are properly integrated during session commands

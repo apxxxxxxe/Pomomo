@@ -30,6 +30,7 @@ class TestConcurrentSessionManagement:
     
     @patch('src.session.session_controller.run_interval')
     @pytest.mark.asyncio
+    @pytest.mark.timeout(30)  # 30秒タイムアウト
     async def test_concurrent_session_creation_multiple_guilds(self, mock_run_interval):
         """複数ギルドでの並行セッション作成テスト"""
         # run_intervalを即座にFalseを返すようにモック化（タイマー終了をシミュレート）
@@ -68,6 +69,7 @@ class TestConcurrentSessionManagement:
     
     @patch('src.session.session_controller.run_interval')
     @pytest.mark.asyncio
+    @pytest.mark.timeout(30)  # 30秒タイムアウト
     async def test_concurrent_session_operations_same_guild(self, mock_run_interval):
         """同一ギルドでの並行セッション操作テスト"""
         # run_intervalを即座にFalseを返すようにモック化（タイマー終了をシミュレート）
