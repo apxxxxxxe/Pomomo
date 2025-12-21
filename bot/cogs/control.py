@@ -7,9 +7,11 @@ from discord.ext import commands
 from discord import app_commands
 
 from src.Settings import Settings
+from src.Stats import Stats
 from configs import bot_enum, user_messages as u_msg, config
 from configs.logging_config import get_logger
 from src.session import session_manager, session_controller, session_messenger, countdown, state_handler, pomodoro, classwork
+from src.session.state_handler import transition
 from src.session.Session import Session
 from src.utils import player, msg_builder, voice_validation
 from src.voice_client import vc_accessor
@@ -53,12 +55,18 @@ class Control(commands.Cog):
         """
         # アクティブセッションの確認
         if session_manager.active_sessions.get(session_manager.session_id_from(interaction)):
-            await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.followup.send(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
+            else:
+                await interaction.response.send_message(u_msg.ACTIVE_SESSION_EXISTS_ERR, ephemeral=True)
             return False
             
         # ユーザーがボイスチャンネルに参加しているかチェック
         if not interaction.user.voice:
-            await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.followup.send(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
+            else:
+                await interaction.response.send_message(u_msg.VOICE_CHANNEL_REQUIRED_ERR, ephemeral=True)
             return False
         
         # ボットの権限チェック
@@ -66,11 +74,19 @@ class Control(commands.Cog):
         bot_member = interaction.guild.me
         
         if not voice_channel.permissions_for(bot_member).connect:
-            await interaction.response.send_message(u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
+            message = u_msg.BOT_CONNECT_PERMISSION_ERR.format(channel_name=voice_channel.name)
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
             return False
         
         if not voice_channel.permissions_for(bot_member).speak:
-            await interaction.response.send_message(u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name), ephemeral=True)
+            message = u_msg.BOT_SPEAK_PERMISSION_ERR.format(channel_name=voice_channel.name)
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
             return False
             
         return True

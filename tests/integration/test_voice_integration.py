@@ -52,12 +52,16 @@ class TestVoiceIntegration:
         
         with patch('src.session.session_controller.vc_accessor') as mock_vc_accessor, \
              patch('src.session.session_controller.session_manager') as mock_session_manager, \
-             patch('src.session.session_controller.session_messenger') as mock_messenger:
+             patch('src.session.session_controller.session_messenger') as mock_messenger, \
+             patch('src.session.session_controller.player') as mock_player, \
+             patch('src.session.session_controller.resume') as mock_resume:
             
             # Setup mocks
             mock_vc_accessor.connect = AsyncMock(return_value=env['voice_client'])
             mock_session_manager.activate = AsyncMock()
             mock_messenger.send_session_start_msg = AsyncMock()
+            mock_player.alert = AsyncMock()
+            mock_resume.return_value = AsyncMock()
             
             # Create session
             settings = Settings(duration=25, short_break=5, long_break=20, intervals=4)

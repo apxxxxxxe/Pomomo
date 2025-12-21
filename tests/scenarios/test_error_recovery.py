@@ -179,6 +179,9 @@ class TestErrorRecovery:
              patch('src.session.session_controller.run_interval') as mock_run_interval, \
              patch('src.session.session_controller.logger') as mock_logger:
             
+            # Setup mocks to prevent infinite loop
+            mock_run_interval.return_value = AsyncMock(return_value=False)
+            
             # Create session with timer that throws exceptions
             mock_timer = MagicMock()
             mock_timer.start = MagicMock(side_effect=Exception("Timer error"))

@@ -34,7 +34,7 @@ class TestInfo:
             mock_msg_builder.help_embed.assert_called_once_with("")
             
             # Verify response was sent with the embed
-            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed)
+            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed, ephemeral=True)
     
     @pytest.mark.asyncio
     async def test_help_command_with_specific_command(self, info_cog, mock_interaction):
@@ -51,7 +51,7 @@ class TestInfo:
             mock_msg_builder.help_embed.assert_called_once_with("pomodoro")
             
             # Verify response was sent with the embed
-            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed)
+            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed, ephemeral=True)
     
     @pytest.mark.asyncio
     async def test_help_command_with_no_embed(self, info_cog, mock_interaction):
@@ -180,7 +180,7 @@ class TestInfo:
             mock_msg_builder.help_embed.assert_called_once_with("")
             
             # Verify response was sent with the embed
-            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed)
+            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed, ephemeral=True)
     
     @pytest.mark.asyncio
     async def test_help_command_integration(self, info_cog, mock_interaction):
@@ -197,4 +197,4 @@ class TestInfo:
             
             # Verify the flow worked correctly
             mock_msg_builder.help_embed.assert_called_once_with("start")
-            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed)
+            mock_interaction.response.send_message.assert_called_once_with(embed=mock_embed, ephemeral=True)

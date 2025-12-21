@@ -20,6 +20,7 @@ class MockUser:
         self.bot = False
         self.system = False
         self.created_at = datetime.now()
+        self.voice = None  # Voice state - will be set to MockVoiceState when needed
         
         # Mock methods
         self.send = AsyncMock()

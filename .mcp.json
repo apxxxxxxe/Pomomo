@@ -9,11 +9,9 @@
 				"start-mcp-server"
 			]
 		},
-		"gemini-cli": {
-			"type": "stdio",
-			"command": "npx",
-			"args": ["@choplin/mcp-gemini-cli", "--allow-npx"],
-			"env": {}
-		}
+		"divide-and-conquer": {
+      "command": "npx",
+      "args": ["-y", "@landicefu/divide-and-conquer-mcp-server"]
+    }
 	}
 }
