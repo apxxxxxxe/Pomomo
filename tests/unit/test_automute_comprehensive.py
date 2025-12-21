@@ -25,6 +25,7 @@ class TestAutoMuteBasicFunctionality:
         self.subscribe_cog = Subscribe(self.bot)
         self.guild = MockGuild(id=12345)
         self.voice_channel = MockVoiceChannel(id=67890, name="test-voice", guild=self.guild)
+        self.interaction = MockInteraction(guild=self.guild)
         self.automute = AutoMute()
     
     @pytest.mark.asyncio
@@ -32,33 +33,51 @@ class TestAutoMuteBasicFunctionality:
         """メンバーミュート成功テスト"""
         member = MockMember(guild=self.guild)
         
-        await self.automute.mute(member)
-        
-        # safe_edit_memberが正しいパラメータで呼ばれることを確認
-        member.edit.assert_called_once_with(mute=True)
+        with patch('src.subscriptions.AutoMute.vc_accessor') as mock_vc_accessor:
+            mock_vc_accessor.get_true_members_in_voice_channel.return_value = [member]
+            mock_vc_accessor.get_voice_channel.return_value = self.voice_channel
+            
+            with patch.object(self.automute, 'safe_edit_member', new_callable=AsyncMock) as mock_safe_edit:
+                # whoパラメータにALLを指定してミュート実行
+                await self.automute.mute(self.interaction, who="all")
+                
+                # safe_edit_memberが正しいパラメータで呼ばれることを確認
+                mock_safe_edit.assert_called_once_with(member)
     
     @pytest.mark.asyncio
     async def test_unmute_member_success(self):
         """メンバーアンミュート成功テスト"""
         member = MockMember(guild=self.guild)
         
-        await self.automute.unmute(member)
-        
-        # safe_edit_memberが正しいパラメータで呼ばれることを確認
-        member.edit.assert_called_once_with(mute=False)
+        with patch('src.subscriptions.AutoMute.vc_accessor') as mock_vc_accessor:
+            mock_vc_accessor.get_true_members_in_voice_channel.return_value = [member]
+            mock_vc_accessor.get_voice_channel.return_value = self.voice_channel
+            
+            with patch.object(self.automute, 'safe_edit_member', new_callable=AsyncMock) as mock_safe_edit:
+                # whoパラメータにALLを指定してアンミュート実行
+                await self.automute.unmute(self.interaction, who="all")
+                
+                # safe_edit_memberが正しいパラメータで呼ばれることを確認
+                mock_safe_edit.assert_called_once_with(member)
     
     @pytest.mark.asyncio
     async def test_mute_member_permission_error(self):
         """ミュート時権限エラーテスト"""
         member = MockMember(guild=self.guild)
-        member.edit = AsyncMock(side_effect=discord.Forbidden(
-            response=MagicMock(),
-            message="Missing permissions"
-        ))
         
-        # 権限エラーが適切に処理されることを確認
-        await self.automute.mute(member)
-        member.edit.assert_called_once_with(mute=True)
+        with patch('src.subscriptions.AutoMute.vc_accessor') as mock_vc_accessor:
+            mock_vc_accessor.get_true_members_in_voice_channel.return_value = [member]
+            mock_vc_accessor.get_voice_channel.return_value = self.voice_channel
+            
+            with patch.object(self.automute, 'safe_edit_member', new_callable=AsyncMock) as mock_safe_edit:
+                mock_safe_edit.side_effect = discord.Forbidden(
+                    response=MagicMock(),
+                    message="Missing permissions"
+                )
+                
+                # 権限エラーが適切に処理されることを確認（例外が発生しないことを確認）
+                await self.automute.mute(self.interaction, who="all")
+                mock_safe_edit.assert_called_once_with(member)
     
     @pytest.mark.asyncio
     async def test_handle_all_enable_mute(self):

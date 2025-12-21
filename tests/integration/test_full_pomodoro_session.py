@@ -65,6 +65,11 @@ class TestFullPomodoroSession:
             mock_session_manager.active_sessions = {}
             mock_session_manager.session_id_from.return_value = "test_session_id"
             
+            # Setup session controller async methods
+            mock_controller.start_pomodoro = AsyncMock()
+            mock_controller.resume = AsyncMock()
+            mock_controller.end = AsyncMock()
+            
             # Create mock session with realistic behavior
             mock_session = MagicMock()
             mock_session.state = State.POMODORO
@@ -99,6 +104,8 @@ class TestFullPomodoroSession:
                 with patch('cogs.control.state_handler') as mock_state_handler, \
                      patch('cogs.control.player') as mock_player:
                     
+                    mock_state_handler.transition = AsyncMock()
+                    mock_player.alert = AsyncMock()
                     mock_session_manager.get_session_interaction = AsyncMock(return_value=mock_session)
                     mock_voice_validation.require_same_voice_channel = AsyncMock(return_value=True)
                     
@@ -159,7 +166,7 @@ class TestFullPomodoroSession:
             
             mock_session_manager.get_session_interaction = AsyncMock(return_value=mock_session)
             mock_voice_validation.require_same_voice_channel = AsyncMock(return_value=True)
-            mock_state_handler.transition.side_effect = mock_transition
+            mock_state_handler.transition = AsyncMock(side_effect=mock_transition)
             mock_controller.resume = AsyncMock()
             
             # Simulate skipping through all intervals
@@ -261,7 +268,9 @@ class TestFullPomodoroSession:
         with patch('cogs.control.session_manager') as mock_session_manager, \
              patch('cogs.control.vc_accessor') as mock_vc_accessor, \
              patch('cogs.control.voice_validation') as mock_voice_validation, \
-             patch('cogs.control.player') as mock_player:
+             patch('cogs.control.player') as mock_player, \
+             patch('cogs.control.state_handler') as mock_state_handler, \
+             patch('cogs.control.session_controller') as mock_controller:
             
             # Setup voice channel mocks
             mock_voice_client = MockVoiceClient(env['voice_channel'], env['guild'])
@@ -270,8 +279,14 @@ class TestFullPomodoroSession:
             
             mock_session = MagicMock()
             mock_session.ctx = env['interaction']
+            mock_session.stats = MagicMock()
+            mock_session.stats.pomos_completed = 0
+            mock_session.stats.pomos_elapsed = 0
             mock_session_manager.get_session_interaction = AsyncMock(return_value=mock_session)
             mock_voice_validation.require_same_voice_channel = AsyncMock(return_value=True)
+            mock_state_handler.transition = AsyncMock()
+            mock_controller.end = AsyncMock()
+            mock_player.alert = AsyncMock()
             
             # Test that voice operations are properly integrated during session commands
             with patch.object(env['control_cog'], '_validate_and_setup_session', return_value=(True, "test_session_id")):

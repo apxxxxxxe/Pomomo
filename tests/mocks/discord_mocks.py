@@ -21,6 +21,9 @@ class MockUser:
         self.system = False
         self.created_at = datetime.now()
         
+        # Mock methods
+        self.send = AsyncMock()
+        
     def __str__(self):
         return f"{self.name}#{self.discriminator}"
         
@@ -66,6 +69,7 @@ class MockMember(MockUser):
         self.edit = AsyncMock()
         self.kick = AsyncMock()
         self.ban = AsyncMock()
+        self.send = AsyncMock()
 
 
 class MockRole:
