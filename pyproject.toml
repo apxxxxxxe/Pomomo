@@ -5,7 +5,8 @@ description = "Discord Pomodoro Bot - Discord上でPomodoro技術を実装する
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "discord-py==2.6.3",
+    "davey>=0.1.4",
+    "discord-py==2.7.1",
     "psutil==6.1.1",
     "pynacl==1.6.0",
     "python-dotenv==1.1.1",
